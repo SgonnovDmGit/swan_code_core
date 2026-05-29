@@ -1,0 +1,36 @@
+<Window x:Class="SwanCode.Core.Views.Dialogs.ErrorExplainDialog"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="{DynamicResource str_ErrorExplainTitle}"
+        Width="500" Height="420"
+        WindowStartupLocation="CenterOwner"
+        ResizeMode="NoResize"
+        Background="{DynamicResource PrimaryBackground}">
+    <Grid Margin="16">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+        </Grid.RowDefinitions>
+
+        <Label Grid.Row="0" Content="{DynamicResource str_ErrorCode}" FontWeight="Bold"/>
+        <TextBox Grid.Row="1" x:Name="CodeTextBox" AcceptsReturn="True" TextWrapping="Wrap"
+                 VerticalScrollBarVisibility="Auto" FontFamily="Consolas" FontSize="12"/>
+
+        <Label Grid.Row="2" Content="{DynamicResource str_ErrorText}" FontWeight="Bold" Margin="0,8,0,0"/>
+        <TextBox Grid.Row="3" x:Name="ErrorTextBox" AcceptsReturn="True" TextWrapping="Wrap"
+                 VerticalScrollBarVisibility="Auto"/>
+
+        <Label Grid.Row="4" Content="{DynamicResource str_ModulePath}" FontWeight="Bold" Margin="0,8,0,0"/>
+        <TextBox Grid.Row="5" x:Name="ModulePathBox"/>
+
+        <StackPanel Grid.Row="6" Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,12,0,0">
+            <Button Content="{DynamicResource str_Send}" Width="100" Margin="0,0,8,0" Click="OkButton_Click"/>
+            <Button Content="{DynamicResource str_Cancel}" Width="100" IsCancel="True"/>
+        </StackPanel>
+    </Grid>
+</Window>

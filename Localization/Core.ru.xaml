@@ -1,6 +1,39 @@
 <ResourceDictionary xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
                     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
                     xmlns:sys="clr-namespace:System;assembly=mscorlib">
+
+    <!-- Auth / LoginWindow (Phase 5a: user-key + X-Product-Key). Заголовок окна — из IProductBranding.DisplayName, не из ресурса. -->
+    <sys:String x:Key="str_UserKeyLabel">User-ключ</sys:String>
+    <sys:String x:Key="str_UserKeyHint">Ключ выдаёт администратор. Формат: swan_uk_xxxxxxxx_xxxx…xxxx</sys:String>
+    <sys:String x:Key="str_LoginButton">Войти</sys:String>
+    <sys:String x:Key="str_LoggingIn">Проверяю ключ...</sys:String>
+    <sys:String x:Key="str_LoginError">Ошибка входа</sys:String>
+    <sys:String x:Key="str_InvalidKeyFormat">Неверный формат ключа. Ожидается swan_uk_xxxxxxxx_xxxx…xxxx</sys:String>
+    <sys:String x:Key="str_InvalidUserKey">Неверный или отозванный user-ключ</sys:String>
+    <sys:String x:Key="str_UserDeleted">Аккаунт удалён. Обратитесь к администратору.</sys:String>
+    <sys:String x:Key="str_NoProductKey">Не настроен product-ключ сборки (APP_PRODUCT_KEY в .env)</sys:String>
+    <sys:String x:Key="str_TokenExpired">User-ключ невалиден. Войдите заново.</sys:String>
+    <sys:String x:Key="str_InsufficientBalance">Недостаточно средств на балансе</sys:String>
+    <sys:String x:Key="str_ChangeKeyConfirm">Сменить user-ключ?</sys:String>
+    <sys:String x:Key="str_NotConfigured">Не настроен</sys:String>
+    <sys:String x:Key="str_BalanceCoins">монет</sys:String>
+    <sys:String x:Key="str_NoKeyHint">Нет ключа? Свяжитесь с администратором проекта SwanCode.</sys:String>
+
+    <!-- Диалоги ядра: ErrorExplainDialog -->
+    <sys:String x:Key="str_ErrorExplainTitle">Объяснить ошибку</sys:String>
+    <sys:String x:Key="str_ErrorCode">Код с ошибкой</sys:String>
+    <sys:String x:Key="str_ErrorText">Текст ошибки</sys:String>
+    <sys:String x:Key="str_ModulePath">Путь к модулю</sys:String>
+
+    <!-- Диалоги ядра: CommandConfirmDialog -->
+    <sys:String x:Key="str_CommandDescription">Описание команды</sys:String>
+    <sys:String x:Key="str_ExecuteCommand">Выполнить</sys:String>
+    <sys:String x:Key="str_SkipCommand">Пропустить</sys:String>
+    <sys:String x:Key="str_AutoExecuteAll">Всегда выполнять</sys:String>
+
+    <!-- Общие кнопки диалогов -->
+    <sys:String x:Key="str_Send">Отправить</sys:String>
+    <sys:String x:Key="str_Cancel">Отмена</sys:String>
+
     <!-- Chat-каркас ключи появятся в v0.11.1 (T-000046) -->
-    <!-- Auth/LoginWindow ключи появятся в T-000039 -->
 </ResourceDictionary>

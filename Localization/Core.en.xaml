@@ -1,6 +1,39 @@
 <ResourceDictionary xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
                     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
                     xmlns:sys="clr-namespace:System;assembly=mscorlib">
+
+    <!-- Auth / LoginWindow (Phase 5a: user-key + X-Product-Key). Window title comes from IProductBranding.DisplayName, not a string resource. -->
+    <sys:String x:Key="str_UserKeyLabel">User key</sys:String>
+    <sys:String x:Key="str_UserKeyHint">Issued by an administrator. Format: swan_uk_xxxxxxxx_xxxx…xxxx</sys:String>
+    <sys:String x:Key="str_LoginButton">Sign in</sys:String>
+    <sys:String x:Key="str_LoggingIn">Validating key...</sys:String>
+    <sys:String x:Key="str_LoginError">Sign-in error</sys:String>
+    <sys:String x:Key="str_InvalidKeyFormat">Invalid key format. Expected swan_uk_xxxxxxxx_xxxx…xxxx</sys:String>
+    <sys:String x:Key="str_InvalidUserKey">Invalid or revoked user key</sys:String>
+    <sys:String x:Key="str_UserDeleted">Account deleted. Contact your administrator.</sys:String>
+    <sys:String x:Key="str_NoProductKey">Product key not configured (APP_PRODUCT_KEY in .env)</sys:String>
+    <sys:String x:Key="str_TokenExpired">User key is invalid. Please sign in again.</sys:String>
+    <sys:String x:Key="str_InsufficientBalance">Insufficient balance</sys:String>
+    <sys:String x:Key="str_ChangeKeyConfirm">Change user key?</sys:String>
+    <sys:String x:Key="str_NotConfigured">Not configured</sys:String>
+    <sys:String x:Key="str_BalanceCoins">coins</sys:String>
+    <sys:String x:Key="str_NoKeyHint">No key? Contact your SwanCode project administrator.</sys:String>
+
+    <!-- Core dialogs: ErrorExplainDialog -->
+    <sys:String x:Key="str_ErrorExplainTitle">Explain Error</sys:String>
+    <sys:String x:Key="str_ErrorCode">Error Code</sys:String>
+    <sys:String x:Key="str_ErrorText">Error Text</sys:String>
+    <sys:String x:Key="str_ModulePath">Module Path</sys:String>
+
+    <!-- Core dialogs: CommandConfirmDialog -->
+    <sys:String x:Key="str_CommandDescription">Command description</sys:String>
+    <sys:String x:Key="str_ExecuteCommand">Execute</sys:String>
+    <sys:String x:Key="str_SkipCommand">Skip</sys:String>
+    <sys:String x:Key="str_AutoExecuteAll">Always execute</sys:String>
+
+    <!-- Generic dialog buttons -->
+    <sys:String x:Key="str_Send">Send</sys:String>
+    <sys:String x:Key="str_Cancel">Cancel</sys:String>
+
     <!-- Chat skeleton keys land in v0.11.1 (T-000046) -->
-    <!-- Auth/LoginWindow keys land in T-000039 -->
 </ResourceDictionary>
