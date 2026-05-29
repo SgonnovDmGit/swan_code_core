@@ -1,0 +1,6 @@
+<ResourceDictionary xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+                    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+                    xmlns:sys="clr-namespace:System;assembly=mscorlib">
+    <!-- Chat-каркас ключи появятся в v0.11.1 (T-000046) -->
+    <!-- Auth/LoginWindow ключи появятся в T-000039 -->
+</ResourceDictionary>

@@ -3,9 +3,39 @@ using System.Globalization;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Data;
+using SwanCode.Core.Services.Theme;
 
 namespace SwanCode.Core.Helpers
 {
+    /// <summary>
+    /// Конвертер AppTheme → локализованная строка (str_ThemeLight / str_ThemeDark / str_Theme1C).
+    /// Локализационные ключи живут в продуктовой сборке, поэтому используется Application.Current.FindResource.
+    /// </summary>
+    public class AppThemeToStringConverter : IValueConverter
+    {
+        public object Convert(object value, Type targetType, object parameter, CultureInfo culture)
+        {
+            if (value is AppTheme theme)
+            {
+                var key = theme switch
+                {
+                    AppTheme.Light => "str_ThemeLight",
+                    AppTheme.Dark => "str_ThemeDark",
+                    AppTheme.OneC => "str_Theme1C",
+                    _ => "str_ThemeLight"
+                };
+                return Application.Current.FindResource(key) as string ?? theme.ToString();
+            }
+            return value?.ToString() ?? string.Empty;
+        }
+
+        public object ConvertBack(object value, Type targetType, object parameter, CultureInfo culture)
+        {
+            throw new NotImplementedException();
+        }
+    }
+
+
     public class BoolToVisibilityConverter : IValueConverter
     {
         public object Convert(object value, Type targetType, object parameter, CultureInfo culture)
