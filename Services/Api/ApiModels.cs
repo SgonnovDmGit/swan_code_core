@@ -269,8 +269,7 @@ namespace SwanCode.Core.Services.Api
 
     public class UsageEntry
     {
-        [JsonPropertyName("provider")]
-        public string Provider { get; set; } = string.Empty;
+        // provider убран с v0.40.0 (ANNOUNCE-005) — Router-канонический SwanCode всегда
 
         [JsonPropertyName("model")]
         public string Model { get; set; } = string.Empty;
@@ -313,8 +312,7 @@ namespace SwanCode.Core.Services.Api
 
     public class RecommendationDto
     {
-        [JsonPropertyName("provider")]
-        public string Provider { get; set; } = string.Empty;
+        // provider убран с v0.40.0 (ANNOUNCE-005) — Router-канонический SwanCode всегда
 
         [JsonPropertyName("modelId")]
         public string ModelId { get; set; } = string.Empty;
