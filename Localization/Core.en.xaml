@@ -35,5 +35,47 @@
     <sys:String x:Key="str_Send">Send</sys:String>
     <sys:String x:Key="str_Cancel">Cancel</sys:String>
 
-    <!-- Chat skeleton keys land in v0.11.1 (T-000046) -->
+    <!-- Chat skeleton (T-000046, v0.11.2). Shared keys for 1C and Universal chats. -->
+
+    <!-- Composer -->
+    <sys:String x:Key="str_Chat_InputPlaceholder">Type a message…</sys:String>
+    <sys:String x:Key="str_Chat_InputHint">Enter — send, Shift+Enter — newline</sys:String>
+    <sys:String x:Key="str_Chat_SendButton">Send</sys:String>
+    <sys:String x:Key="str_Chat_NewChat">New chat</sys:String>
+
+    <!-- Assistant states -->
+    <sys:String x:Key="str_Chat_Streaming">streaming</sys:String>
+    <sys:String x:Key="str_Chat_Interrupted">interrupted</sys:String>
+    <sys:String x:Key="str_Chat_Thinking">thinking…</sys:String>
+
+    <!-- Reasoning block -->
+    <sys:String x:Key="str_Chat_Reasoning">Reasoning</sys:String>
+
+    <!-- Tool card -->
+    <sys:String x:Key="str_Chat_ToolStatusSuccess">success</sys:String>
+    <sys:String x:Key="str_Chat_ToolStatusFailure">failure</sys:String>
+    <sys:String x:Key="str_Chat_ToolStatusPending">running</sys:String>
+
+    <!-- Message actions -->
+    <sys:String x:Key="str_Chat_ActionCopy">Copy</sys:String>
+    <sys:String x:Key="str_Chat_ActionQuote">Quote</sys:String>
+    <sys:String x:Key="str_Chat_ActionRetry">Retry</sys:String>
+    <sys:String x:Key="str_Chat_ActionInfo">Turn info</sys:String>
+
+    <!-- Info popup — key/value column -->
+    <sys:String x:Key="str_Chat_InfoTitle">turn info</sys:String>
+    <sys:String x:Key="str_Chat_InfoModel">model</sys:String>
+    <sys:String x:Key="str_Chat_InfoProvider">provider</sys:String>
+    <sys:String x:Key="str_Chat_InfoEffort">effort</sys:String>
+    <sys:String x:Key="str_Chat_InfoReasoning">reasoning</sys:String>
+    <sys:String x:Key="str_Chat_InfoPromptTokens">prompt</sys:String>
+    <sys:String x:Key="str_Chat_InfoCompletionTokens">completion</sys:String>
+    <sys:String x:Key="str_Chat_InfoTotalTokens">total</sys:String>
+    <sys:String x:Key="str_Chat_InfoCost">cost</sys:String>
+    <sys:String x:Key="str_Chat_InfoCostRub">in rub</sys:String>
+    <sys:String x:Key="str_Chat_InfoCostUsd">in usd</sys:String>
+    <sys:String x:Key="str_Chat_InfoTimeFirstChunk">first chunk</sys:String>
+    <sys:String x:Key="str_Chat_InfoTimeTotal">total</sys:String>
+    <sys:String x:Key="str_Chat_InfoMessageId">turn id</sys:String>
+    <sys:String x:Key="str_Chat_InfoTime">time</sys:String>
 </ResourceDictionary>

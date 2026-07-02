@@ -35,5 +35,47 @@
     <sys:String x:Key="str_Send">Отправить</sys:String>
     <sys:String x:Key="str_Cancel">Отмена</sys:String>
 
-    <!-- Chat-каркас ключи появятся в v0.11.1 (T-000046) -->
+    <!-- Chat-каркас (T-000046, v0.11.2). Общие ключи для 1С и Universal чатов. -->
+
+    <!-- Composer -->
+    <sys:String x:Key="str_Chat_InputPlaceholder">Написать сообщение…</sys:String>
+    <sys:String x:Key="str_Chat_InputHint">Enter — отправить, Shift+Enter — перенос</sys:String>
+    <sys:String x:Key="str_Chat_SendButton">Отправить</sys:String>
+    <sys:String x:Key="str_Chat_NewChat">Новый диалог</sys:String>
+
+    <!-- Assistant states -->
+    <sys:String x:Key="str_Chat_Streaming">стрим</sys:String>
+    <sys:String x:Key="str_Chat_Interrupted">прервано</sys:String>
+    <sys:String x:Key="str_Chat_Thinking">думаю…</sys:String>
+
+    <!-- Reasoning block -->
+    <sys:String x:Key="str_Chat_Reasoning">Размышления</sys:String>
+
+    <!-- Tool card -->
+    <sys:String x:Key="str_Chat_ToolStatusSuccess">success</sys:String>
+    <sys:String x:Key="str_Chat_ToolStatusFailure">failure</sys:String>
+    <sys:String x:Key="str_Chat_ToolStatusPending">в работе</sys:String>
+
+    <!-- Message actions -->
+    <sys:String x:Key="str_Chat_ActionCopy">Копировать</sys:String>
+    <sys:String x:Key="str_Chat_ActionQuote">Цитировать</sys:String>
+    <sys:String x:Key="str_Chat_ActionRetry">Повторить</sys:String>
+    <sys:String x:Key="str_Chat_ActionInfo">Инфо про ход</sys:String>
+
+    <!-- Info popup — key/value в столбик -->
+    <sys:String x:Key="str_Chat_InfoTitle">инфо про ход</sys:String>
+    <sys:String x:Key="str_Chat_InfoModel">модель</sys:String>
+    <sys:String x:Key="str_Chat_InfoProvider">провайдер</sys:String>
+    <sys:String x:Key="str_Chat_InfoEffort">effort</sys:String>
+    <sys:String x:Key="str_Chat_InfoReasoning">размышления</sys:String>
+    <sys:String x:Key="str_Chat_InfoPromptTokens">prompt</sys:String>
+    <sys:String x:Key="str_Chat_InfoCompletionTokens">completion</sys:String>
+    <sys:String x:Key="str_Chat_InfoTotalTokens">всего</sys:String>
+    <sys:String x:Key="str_Chat_InfoCost">стоимость</sys:String>
+    <sys:String x:Key="str_Chat_InfoCostRub">в рублях</sys:String>
+    <sys:String x:Key="str_Chat_InfoCostUsd">в usd</sys:String>
+    <sys:String x:Key="str_Chat_InfoTimeFirstChunk">1-й chunk</sys:String>
+    <sys:String x:Key="str_Chat_InfoTimeTotal">всего</sys:String>
+    <sys:String x:Key="str_Chat_InfoMessageId">id хода</sys:String>
+    <sys:String x:Key="str_Chat_InfoTime">время</sys:String>
 </ResourceDictionary>
