@@ -1,9 +1,8 @@
 using System;
-using System.IO;
 using System.Net.Http;
+using System.Net.Http.Headers;
 using System.Text;
 using System.Text.Json;
-using System.Threading;
 using System.Threading.Tasks;
 
 namespace SwanCode.Core.Services.Api
@@ -18,9 +17,22 @@ namespace SwanCode.Core.Services.Api
             get => _baseUrl;
             set
             {
-                _baseUrl = value.TrimEnd('/');
-                if (!_baseUrl.StartsWith("http"))
-                    _baseUrl = "http://" + _baseUrl;
+                // localhost / 127.0.0.1 — dev-режим на http; внешние домены — https.
+                // Реальные окружения (nginx / openresty) редиректят http → https через 301, а
+                // .NET HttpClient стрипает Authorization заголовок на cross-scheme redirect
+                // (стандартная защита) — итог: сервер видит запрос без user-key и отвечает
+                // USER_REQUIRED. Auto-upgrade убирает redirect и Authorization доходит целым.
+                var raw = value.TrimEnd('/');
+                var stripped = raw;
+                if (stripped.StartsWith("http://", StringComparison.OrdinalIgnoreCase))
+                    stripped = stripped[7..];
+                else if (stripped.StartsWith("https://", StringComparison.OrdinalIgnoreCase))
+                    stripped = stripped[8..];
+
+                var isLocal = stripped.StartsWith("localhost", StringComparison.OrdinalIgnoreCase) ||
+                              stripped.StartsWith("127.0.0.1") ||
+                              stripped.StartsWith("[::1]");
+                _baseUrl = (isLocal ? "http://" : "https://") + stripped;
             }
         }
 
@@ -116,8 +128,12 @@ namespace SwanCode.Core.Services.Api
                 request.Headers.Add("X-Product-Key", ProductKey);
 
             // User identity — long-lived bearer-ключ. Не отправляется на OTP-эндпоинтах (юзера ещё нет).
+            // Используем TryAddWithoutValidation — HeaderValidation .NET-а может тихо отбросить
+            // заголовок для нестандартных user-key (генерация ключа уехала в микросервис,
+            // формат теперь произвольный). AuthenticationHeaderValue ctor валидирует token68 по RFC 6750,
+            // а значит символы вне [A-Za-z0-9._~+/=-] отклоняются.
             if (!string.IsNullOrEmpty(UserKey) && !path.StartsWith("/v1/auth/otp"))
-                request.Headers.Add("Authorization", $"Bearer {UserKey}");
+                request.Headers.TryAddWithoutValidation("Authorization", $"Bearer {UserKey}");
 
             return request;
         }

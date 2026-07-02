@@ -101,7 +101,7 @@ namespace SwanCode.Core.Views
 
         private string MapErrorCode(string? code, string? fallback = null)
         {
-            return code switch
+            var localized = code switch
             {
                 "UNAUTHORIZED" or "USER_REQUIRED" => Localize("str_InvalidUserKey"),
                 "USER_DELETED" => Localize("str_UserDeleted"),
@@ -109,6 +109,17 @@ namespace SwanCode.Core.Views
                 "CONNECTION_ERROR" => Localize("str_ErrorConnection"),
                 _ => fallback ?? code ?? Localize("str_InvalidUserKey")
             };
+            // Диагностика: показываем сырой errorCode и (если есть) серверный message —
+            // чтобы различать UNAUTHORIZED (ключ не найден) / USER_REQUIRED (роль не подошла) /
+            // KEY_VALIDATION_UNAVAILABLE / прочие случаи, пока текст одинаковый.
+            if (!string.IsNullOrEmpty(code))
+            {
+                var suffix = !string.IsNullOrEmpty(fallback) && fallback != code
+                    ? $" [{code}: {fallback}]"
+                    : $" [{code}]";
+                return localized + suffix;
+            }
+            return localized;
         }
 
         private string Localize(string key)
