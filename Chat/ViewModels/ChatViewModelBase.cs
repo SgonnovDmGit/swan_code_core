@@ -37,8 +37,15 @@ namespace SwanCode.Core.Chat.ViewModels
         public bool IsBusy
         {
             get => _isBusy;
-            set => SetProperty(ref _isBusy, value);
+            set
+            {
+                if (SetProperty(ref _isBusy, value))
+                    OnBusyChanged(value);
+            }
         }
+
+        /// <summary>Hook для наследника — переключение loading-индикатора / thinking-bubble.</summary>
+        protected virtual void OnBusyChanged(bool busy) { }
 
         public string SessionId
         {
