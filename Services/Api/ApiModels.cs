@@ -1,5 +1,6 @@
 using System;
 using System.Text.Json.Serialization;
+using SwanCode.Core.Chat.Models;
 
 namespace SwanCode.Core.Services.Api
 {
@@ -46,6 +47,15 @@ namespace SwanCode.Core.Services.Api
 
         [JsonPropertyName("thinking")]
         public bool Thinking { get; set; }
+
+        /// <summary>
+        /// REQ-007 (v0.59.0): none | minimal | low | medium | high. Приоритетнее thinking.
+        /// omitempty → сервер идёт back-compat через thinking. Невалидное значение →
+        /// сервер вернёт 400 INVALID_REASONING_EFFORT.
+        /// </summary>
+        [JsonPropertyName("reasoningEffort")]
+        [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+        public string? ReasoningEffort { get; set; }
     }
 
     public class ChatResponse
@@ -82,6 +92,39 @@ namespace SwanCode.Core.Services.Api
 
         [JsonPropertyName("executeCommands")]
         public ExecuteCommandDto[]? ExecuteCommands { get; set; }
+
+        // v0.23.0+ generic tool_use channel (ANNOUNCE-001). Для default продукта
+        // заполняется для onec_* тулов; для query_console_1c — для всех console-тулов.
+        [JsonPropertyName("toolUses")]
+        public ToolUseDTO[]? ToolUses { get; set; }
+
+        // v0.59.0 reasoning (REQ-007/008). Present ⟺ в ходе реально были размышления.
+        [JsonPropertyName("reasoningText")]
+        public string? ReasoningText { get; set; }
+
+        [JsonPropertyName("reasoningEffort")]
+        public string? ReasoningEffort { get; set; }
+
+        // T-000106 billing. Present ⟺ commit прошёл. Отсутствие ≠ «0».
+        [JsonPropertyName("balanceCoins")]
+        public decimal? BalanceCoins { get; set; }
+
+        [JsonPropertyName("costCoins")]
+        public decimal? CostCoins { get; set; }
+
+        [JsonPropertyName("costUsd")]
+        public decimal? CostUsd { get; set; }
+
+        [JsonPropertyName("costRub")]
+        public decimal? CostRub { get; set; }
+
+        // T-000107 SERIAL id user-message на сервере — стабильный якорь для retry/attribution.
+        [JsonPropertyName("userMessageId")]
+        public int? UserMessageId { get; set; }
+
+        // REQ-021 (Lensa_Query, опционально): заголовок сессии.
+        [JsonPropertyName("title")]
+        public string? Title { get; set; }
     }
 
     public class CodeChangeDto
@@ -221,6 +264,36 @@ namespace SwanCode.Core.Services.Api
 
         [JsonPropertyName("retryExhausted")]
         public bool RetryExhausted { get; set; }
+
+        [JsonPropertyName("promptTokens")]
+        public int PromptTokens { get; set; }
+
+        [JsonPropertyName("completionTokens")]
+        public int CompletionTokens { get; set; }
+
+        [JsonPropertyName("totalTokens")]
+        public int TotalTokens { get; set; }
+
+        [JsonPropertyName("toolUses")]
+        public ToolUseDTO[]? ToolUses { get; set; }
+
+        [JsonPropertyName("reasoningText")]
+        public string? ReasoningText { get; set; }
+
+        [JsonPropertyName("reasoningEffort")]
+        public string? ReasoningEffort { get; set; }
+
+        [JsonPropertyName("balanceCoins")]
+        public decimal? BalanceCoins { get; set; }
+
+        [JsonPropertyName("costCoins")]
+        public decimal? CostCoins { get; set; }
+
+        [JsonPropertyName("costUsd")]
+        public decimal? CostUsd { get; set; }
+
+        [JsonPropertyName("costRub")]
+        public decimal? CostRub { get; set; }
     }
 
     // --- User DTOs ---
@@ -345,6 +418,20 @@ namespace SwanCode.Core.Services.Api
 
         [JsonPropertyName("results")]
         public ToolResult[] Results { get; set; } = Array.Empty<ToolResult>();
+    }
+
+    /// <summary>
+    /// Новая обёртка под ApiClient.PostToolResultsAsync — с ToolResultItem envelope
+    /// (SwanCode.Core.Chat.Models). Используется ChatViewModelBase. Старый
+    /// ChatToolResultsRequest с ToolResult остаётся для 1С AiViewModel до T-000048.
+    /// </summary>
+    public class ChatToolResultsEnvelope
+    {
+        [JsonPropertyName("sessionId")]
+        public string SessionId { get; set; } = string.Empty;
+
+        [JsonPropertyName("results")]
+        public ToolResultItem[] Results { get; set; } = Array.Empty<ToolResultItem>();
     }
 
     public class ApiException : Exception

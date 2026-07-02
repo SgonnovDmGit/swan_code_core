@@ -125,13 +125,76 @@ namespace SwanCode.Core.Chat.ViewModels
         }
 
         /// <summary>
-        /// Отправка tool-результатов обратно на сервер. Реализуется в T-000047
-        /// (ApiClient.PostToolResultsAsync). Пока — no-op, чтобы наследник компилировался.
+        /// Отправка tool-результатов обратно на сервер. Реализовано T-000047.
+        /// Сервер отвечает следующим assistant-ходом (retry-response), который может
+        /// содержать новые toolUses[] — тогда пайплайн рекурсивно диспатчит их дальше.
+        /// Наследник может переопределить для локального логирования / debug bubble'ов.
         /// </summary>
-        protected virtual Task PostToolResultsAsync(IReadOnlyList<ToolResultItem> results)
+        protected virtual async Task PostToolResultsAsync(IReadOnlyList<ToolResultItem> results)
         {
-            return Task.CompletedTask;
+            if (string.IsNullOrEmpty(SessionId) || results.Count == 0) return;
+
+            try
+            {
+                var retry = await Api.PostToolResultsAsync(SessionId, results);
+                if (!string.IsNullOrEmpty(retry.SessionId))
+                    SessionId = retry.SessionId;
+
+                await HandleToolRetryResponseAsync(retry);
+            }
+            catch (ApiException ex)
+            {
+                await OnApiExceptionAsync(ex);
+            }
+            catch (Exception ex)
+            {
+                await OnUnexpectedExceptionAsync(ex);
+            }
         }
+
+        /// <summary>
+        /// Обработка ответа /chat/tool-results — по сути следующий assistant-ход
+        /// с retry-статой (AttemptsUsed/Max/Exhausted). Наследник переопределяет
+        /// для legacy channels (codeChanges/executeCommands) и для UI-индикации retry.
+        /// </summary>
+        protected virtual async Task HandleToolRetryResponseAsync(ChatToolRetryResponse retry)
+        {
+            var msg = BuildAssistantMessage(
+                content: retry.Content,
+                model: retry.Model,
+                modelDisplay: retry.ModelDisplayName,
+                promptTokens: retry.PromptTokens,
+                completionTokens: retry.CompletionTokens,
+                totalTokens: retry.TotalTokens,
+                reasoningText: retry.ReasoningText,
+                reasoningEffort: retry.ReasoningEffort,
+                balanceCoins: retry.BalanceCoins,
+                costCoins: retry.CostCoins,
+                costUsd: retry.CostUsd,
+                costRub: retry.CostRub,
+                userMessageId: null,
+                toolUses: retry.ToolUses,
+                hasLegacyCodeChanges: retry.CodeChanges is { Length: > 0 });
+            Messages.Add(msg);
+
+            if (retry.RetryExhausted)
+            {
+                Messages.Add(new ChatMessage
+                {
+                    Role = MessageRoles.Debug,
+                    Content = $"Retry исчерпан: {retry.AttemptsUsed}/{retry.AttemptsMax}"
+                });
+                return;
+            }
+
+            await ProcessToolRetryLegacyChannelsAsync(retry);
+
+            if (retry.ToolUses is { Length: > 0 })
+                await DispatchToolUsesAsync(retry.ToolUses);
+        }
+
+        /// <summary>Hook для наследника — legacy channels в tool-retry response.</summary>
+        protected virtual Task ProcessToolRetryLegacyChannelsAsync(ChatToolRetryResponse retry) => Task.CompletedTask;
 
         // --- Send / receive pipeline ----------------------------------------
 
@@ -178,29 +241,78 @@ namespace SwanCode.Core.Chat.ViewModels
         }
 
         /// <summary>
-        /// Обработка ответа /chat: добавить assistant-message, диспатчить toolUses[],
-        /// hook на legacy-каналы (наследник обрабатывает codeChanges/executeCommands).
+        /// Обработка ответа /chat: добавить assistant-message со всеми полями (reasoning,
+        /// billing, tokens, toolUses), диспатчить toolUses[], hook на legacy-каналы.
         /// Виртуальный — наследник может переопределить если нужен полный контроль
         /// (например, переиспользование thinking-bubble вместо новой строки).
         /// </summary>
         protected virtual async Task HandleChatResponseAsync(ChatResponse response)
         {
-            var msg = new ChatMessage
-            {
-                Role = MessageRoles.Assistant,
-                Content = response.Content,
-                ModelName = !string.IsNullOrEmpty(response.ModelDisplayName)
-                    ? response.ModelDisplayName
-                    : response.Model,
-                PromptTokens = response.PromptTokens,
-                CompletionTokens = response.CompletionTokens,
-                TotalTokens = response.TotalTokens,
-                HasCodeChanges = response.CodeChanges is { Length: > 0 }
-            };
+            var msg = BuildAssistantMessage(
+                content: response.Content,
+                model: response.Model,
+                modelDisplay: response.ModelDisplayName,
+                promptTokens: response.PromptTokens,
+                completionTokens: response.CompletionTokens,
+                totalTokens: response.TotalTokens,
+                reasoningText: response.ReasoningText,
+                reasoningEffort: response.ReasoningEffort,
+                balanceCoins: response.BalanceCoins,
+                costCoins: response.CostCoins,
+                costUsd: response.CostUsd,
+                costRub: response.CostRub,
+                userMessageId: response.UserMessageId,
+                toolUses: response.ToolUses,
+                hasLegacyCodeChanges: response.CodeChanges is { Length: > 0 });
             Messages.Add(msg);
 
             await ProcessLegacyChannelsAsync(response);
-            // Диспатч response.ToolUses будет включён в T-000047 после расширения ApiModels
+
+            if (response.ToolUses is { Length: > 0 })
+                await DispatchToolUsesAsync(response.ToolUses);
+        }
+
+        /// <summary>
+        /// Собрать ChatMessage assistant-роли из полей ChatResponse / ChatToolRetryResponse.
+        /// Дедуп между HandleChatResponseAsync и HandleToolRetryResponseAsync.
+        /// </summary>
+        private static ChatMessage BuildAssistantMessage(
+            string content,
+            string model,
+            string modelDisplay,
+            int promptTokens,
+            int completionTokens,
+            int totalTokens,
+            string? reasoningText,
+            string? reasoningEffort,
+            decimal? balanceCoins,
+            decimal? costCoins,
+            decimal? costUsd,
+            decimal? costRub,
+            int? userMessageId,
+            ToolUseDTO[]? toolUses,
+            bool hasLegacyCodeChanges)
+        {
+            var msg = new ChatMessage
+            {
+                Role = MessageRoles.Assistant,
+                Content = content,
+                ModelName = !string.IsNullOrEmpty(modelDisplay) ? modelDisplay : model,
+                PromptTokens = promptTokens,
+                CompletionTokens = completionTokens,
+                TotalTokens = totalTokens,
+                ReasoningText = reasoningText,
+                ReasoningEffort = reasoningEffort,
+                BalanceCoins = balanceCoins,
+                CostCoins = costCoins,
+                CostUsd = costUsd,
+                CostRub = costRub,
+                UserMessageId = userMessageId,
+                HasCodeChanges = hasLegacyCodeChanges
+            };
+            if (toolUses is { Length: > 0 })
+                msg.ToolUses = new List<ToolUseDTO>(toolUses);
+            return msg;
         }
 
         /// <summary>

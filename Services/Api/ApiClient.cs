@@ -1,9 +1,11 @@
 using System;
+using System.Collections.Generic;
 using System.Net.Http;
 using System.Net.Http.Headers;
 using System.Text;
 using System.Text.Json;
 using System.Threading.Tasks;
+using SwanCode.Core.Chat.Models;
 
 namespace SwanCode.Core.Services.Api
 {
@@ -109,6 +111,27 @@ namespace SwanCode.Core.Services.Api
         {
             using var request = CreateRequest(HttpMethod.Post, "/v1/api/chat/tool-results");
             var json = JsonSerializer.Serialize(resultsRequest);
+            request.Content = new StringContent(json, Encoding.UTF8, "application/json");
+            return await SendAsync<ChatToolRetryResponse>(request);
+        }
+
+        /// <summary>
+        /// Отправить tool-результаты (unified envelope из SwanCode.Core.Chat.Models.ToolResultItem).
+        /// Используется ChatViewModelBase после DispatchToolUsesAsync. Ответ — стандартный
+        /// ChatToolRetryResponse (следующий assistant-ход с возможными новыми toolUses[]).
+        /// Old SendChatToolResultsAsync с legacy ToolResult остаётся для 1С AiViewModel до T-000048.
+        /// </summary>
+        public async Task<ChatToolRetryResponse> PostToolResultsAsync(
+            string sessionId,
+            IReadOnlyList<ToolResultItem> results)
+        {
+            using var request = CreateRequest(HttpMethod.Post, "/v1/api/chat/tool-results");
+            var body = new ChatToolResultsEnvelope
+            {
+                SessionId = sessionId,
+                Results = results is ToolResultItem[] arr ? arr : System.Linq.Enumerable.ToArray(results)
+            };
+            var json = JsonSerializer.Serialize(body);
             request.Content = new StringContent(json, Encoding.UTF8, "application/json");
             return await SendAsync<ChatToolRetryResponse>(request);
         }
