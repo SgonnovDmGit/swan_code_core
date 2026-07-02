@@ -117,15 +117,6 @@ namespace SwanCode.Core.Services.Api
         public string ToolUseId { get; set; } = string.Empty;
     }
 
-    public class ProvidersResponse
-    {
-        [JsonPropertyName("serviceInfo")]
-        public ServiceInfo ServiceInfo { get; set; } = new();
-
-        [JsonPropertyName("providers")]
-        public string[] Providers { get; set; } = Array.Empty<string>();
-    }
-
     public class ModelDto
     {
         [JsonPropertyName("id")]
@@ -177,21 +168,6 @@ namespace SwanCode.Core.Services.Api
 
         [JsonPropertyName("models")]
         public ModelDto[] Models { get; set; } = Array.Empty<ModelDto>();
-    }
-
-    public class BalanceResponse
-    {
-        [JsonPropertyName("serviceInfo")]
-        public ServiceInfo ServiceInfo { get; set; } = new();
-
-        [JsonPropertyName("provider")]
-        public string Provider { get; set; } = string.Empty;
-
-        [JsonPropertyName("balance")]
-        public decimal Balance { get; set; }
-
-        [JsonPropertyName("currency")]
-        public string Currency { get; set; } = string.Empty;
     }
 
     public class ErrorResponse

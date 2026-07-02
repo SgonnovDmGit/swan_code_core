@@ -49,24 +49,14 @@ namespace SwanCode.Core.Services.Api
             }
         }
 
-        public async Task<string[]> GetProvidersAsync()
-        {
-            using var request = CreateRequest(HttpMethod.Get, "/v1/api/providers");
-            var result = await SendAsync<ProvidersResponse>(request);
-            return result.Providers;
-        }
-
         public async Task<ModelDto[]> GetModelsAsync(string provider)
         {
+            // С v0.40.0 (ANNOUNCE-005) path-параметр {provider} игнорируется — Router-канонический SwanCode.
+            // GetProvidersAsync / GetBalanceAsync удалены (T-000068): UI выбора провайдера убран,
+            // баланс всегда GetMeAsync().BalanceCoins (внутренние монеты).
             using var request = CreateRequest(HttpMethod.Get, $"/v1/api/models/{Uri.EscapeDataString(provider)}");
             var result = await SendAsync<ModelsResponse>(request);
             return result.Models;
-        }
-
-        public async Task<BalanceResponse> GetBalanceAsync(string provider)
-        {
-            using var request = CreateRequest(HttpMethod.Get, $"/v1/api/balance/{Uri.EscapeDataString(provider)}");
-            return await SendAsync<BalanceResponse>(request);
         }
 
         public async Task<ChatResponse> SendChatAsync(ChatRequest chatRequest)
