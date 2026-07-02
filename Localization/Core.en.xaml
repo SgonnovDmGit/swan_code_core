@@ -4,11 +4,11 @@
 
     <!-- Auth / LoginWindow (Phase 5a: user-key + X-Product-Key). Window title comes from IProductBranding.DisplayName, not a string resource. -->
     <sys:String x:Key="str_UserKeyLabel">User key</sys:String>
-    <sys:String x:Key="str_UserKeyHint">Issued by an administrator. Format: swan_uk_xxxxxxxx_xxxx…xxxx</sys:String>
+    <sys:String x:Key="str_UserKeyHint">Issued by an administrator.</sys:String>
     <sys:String x:Key="str_LoginButton">Sign in</sys:String>
     <sys:String x:Key="str_LoggingIn">Validating key...</sys:String>
     <sys:String x:Key="str_LoginError">Sign-in error</sys:String>
-    <sys:String x:Key="str_InvalidKeyFormat">Invalid key format. Expected swan_uk_xxxxxxxx_xxxx…xxxx</sys:String>
+    <sys:String x:Key="str_InvalidKeyFormat">Enter a user key</sys:String>
     <sys:String x:Key="str_InvalidUserKey">Invalid or revoked user key</sys:String>
     <sys:String x:Key="str_UserDeleted">Account deleted. Contact your administrator.</sys:String>
     <sys:String x:Key="str_NoProductKey">Product key not configured (APP_PRODUCT_KEY in .env)</sys:String>

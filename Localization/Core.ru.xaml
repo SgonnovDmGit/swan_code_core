@@ -4,11 +4,11 @@
 
     <!-- Auth / LoginWindow (Phase 5a: user-key + X-Product-Key). Заголовок окна — из IProductBranding.DisplayName, не из ресурса. -->
     <sys:String x:Key="str_UserKeyLabel">User-ключ</sys:String>
-    <sys:String x:Key="str_UserKeyHint">Ключ выдаёт администратор. Формат: swan_uk_xxxxxxxx_xxxx…xxxx</sys:String>
+    <sys:String x:Key="str_UserKeyHint">Ключ выдаёт администратор.</sys:String>
     <sys:String x:Key="str_LoginButton">Войти</sys:String>
     <sys:String x:Key="str_LoggingIn">Проверяю ключ...</sys:String>
     <sys:String x:Key="str_LoginError">Ошибка входа</sys:String>
-    <sys:String x:Key="str_InvalidKeyFormat">Неверный формат ключа. Ожидается swan_uk_xxxxxxxx_xxxx…xxxx</sys:String>
+    <sys:String x:Key="str_InvalidKeyFormat">Введите user-ключ</sys:String>
     <sys:String x:Key="str_InvalidUserKey">Неверный или отозванный user-ключ</sys:String>
     <sys:String x:Key="str_UserDeleted">Аккаунт удалён. Обратитесь к администратору.</sys:String>
     <sys:String x:Key="str_NoProductKey">Не настроен product-ключ сборки (APP_PRODUCT_KEY в .env)</sys:String>

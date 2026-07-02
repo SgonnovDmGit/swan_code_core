@@ -1,5 +1,4 @@
 using System;
-using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Input;
@@ -10,8 +9,10 @@ namespace SwanCode.Core.Views
 {
     public partial class LoginWindow : Window
     {
-        private static readonly Regex UserKeyFormat =
-            new(@"^swan_uk_[a-f0-9]{8}_[a-f0-9]{32}$", RegexOptions.IgnoreCase);
+        // Формат user-ключа задаётся сервером и со временем меняется (Phase 5a был `swan_uk_*` —
+        // на v0.11.1 сервер уже отдаёт ключи другого шейпа). Клиент не гадает — принимает любое
+        // непустое значение и делегирует проверку серверу (GetMeAsync ниже вернёт UNAUTHORIZED
+        // если ключ невалидный или отозван).
 
         private readonly ApiClient _api;
         private readonly IProductBranding _branding;
@@ -49,7 +50,7 @@ namespace SwanCode.Core.Views
 
             var key = KeyBox.Password.Trim();
 
-            if (!UserKeyFormat.IsMatch(key))
+            if (string.IsNullOrEmpty(key))
             {
                 ShowError(Localize("str_InvalidKeyFormat"));
                 return;
