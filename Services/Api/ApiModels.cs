@@ -140,11 +140,19 @@ namespace SwanCode.Core.Services.Api
         [JsonPropertyName("contextLength")]
         public int ContextLength { get; set; }
 
-        [JsonPropertyName("promptPrice")]
-        public decimal PromptPrice { get; set; }
+        // Coin-цены (ANNOUNCE-004 v0.33.0 — USD-поля promptPrice/completionPrice/priceOverridden удалены)
+        [JsonPropertyName("promptPriceCoins")]
+        public decimal PromptPriceCoins { get; set; }
 
-        [JsonPropertyName("completionPrice")]
-        public decimal CompletionPrice { get; set; }
+        [JsonPropertyName("completionPriceCoins")]
+        public decimal CompletionPriceCoins { get; set; }
+
+        // Per-1M токенов для читаемости (ANNOUNCE-005 v0.40.0)
+        [JsonPropertyName("promptPriceCoinsPer1M")]
+        public decimal PromptPriceCoinsPer1M { get; set; }
+
+        [JsonPropertyName("completionPriceCoinsPer1M")]
+        public decimal CompletionPriceCoinsPer1M { get; set; }
 
         [JsonIgnore]
         public string DisplayContext => ContextLength > 0
@@ -152,8 +160,8 @@ namespace SwanCode.Core.Services.Api
             : string.Empty;
 
         [JsonIgnore]
-        public string DisplayPrice => PromptPrice > 0
-            ? $"${PromptPrice * 1_000_000:F1}/{CompletionPrice * 1_000_000:F1}"
+        public string DisplayPrice => PromptPriceCoinsPer1M > 0
+            ? $"{PromptPriceCoinsPer1M:F0}/{CompletionPriceCoinsPer1M:F0} coins/1M"
             : string.Empty;
 
         public override string ToString() => !string.IsNullOrEmpty(Name) ? Name : Id;
