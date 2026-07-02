@@ -111,54 +111,10 @@ namespace SwanCode.Core.Services.Api
             return await SendAsync<ChatToolRetryResponse>(request);
         }
 
-        public async Task SendChatStreamAsync(
-            ChatRequest chatRequest,
-            Action<string> onChunk,
-            Action<SseDoneData> onDone,
-            CancellationToken ct = default)
-        {
-            using var request = CreateRequest(HttpMethod.Post, "/v1/api/chat/stream");
-            var json = JsonSerializer.Serialize(chatRequest);
-            request.Content = new StringContent(json, Encoding.UTF8, "application/json");
-
-            using var response = await _http.SendAsync(request, HttpCompletionOption.ResponseHeadersRead, ct);
-            response.EnsureSuccessStatusCode();
-
-            using var stream = await response.Content.ReadAsStreamAsync(ct);
-            using var reader = new StreamReader(stream);
-
-            string? eventType = null;
-
-            while (!reader.EndOfStream && !ct.IsCancellationRequested)
-            {
-                var line = await reader.ReadLineAsync(ct);
-                if (line == null) break;
-
-                if (line.StartsWith("event: "))
-                {
-                    eventType = line[7..];
-                }
-                else if (line.StartsWith("data: "))
-                {
-                    var data = line[6..];
-
-                    if (eventType == "done")
-                    {
-                        var doneData = JsonSerializer.Deserialize<SseDoneData>(data) ?? new SseDoneData();
-                        onDone(doneData);
-                    }
-                    else
-                    {
-                        onChunk(data);
-                    }
-                    eventType = null;
-                }
-                else if (string.IsNullOrEmpty(line))
-                {
-                    eventType = null;
-                }
-            }
-        }
+        // SSE-стрим (POST /v1/api/chat/stream) отключён на сервере с ANNOUNCE-004 v0.33.0 —
+        // сервер безусловно отвечает 501 STREAMING_NOT_SUPPORTED, пока Router-SSE не вернётся.
+        // Клиентский метод SendChatStreamAsync (и модель SseDoneData) удалены — восстановим,
+        // когда стрим появится обратно (T-000003).
 
         private HttpRequestMessage CreateRequest(HttpMethod method, string path)
         {

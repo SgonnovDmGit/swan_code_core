@@ -203,18 +203,6 @@ namespace SwanCode.Core.Services.Api
         public string Message { get; set; } = string.Empty;
     }
 
-    public class SseDoneData
-    {
-        [JsonPropertyName("sessionId")]
-        public string SessionId { get; set; } = string.Empty;
-
-        [JsonPropertyName("promptTokens")]
-        public int PromptTokens { get; set; }
-
-        [JsonPropertyName("completionTokens")]
-        public int CompletionTokens { get; set; }
-    }
-
     public static class ToolFailureTypes
     {
         public const string SearchNotFound = "search_not_found";
