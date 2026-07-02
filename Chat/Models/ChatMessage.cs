@@ -12,6 +12,15 @@ namespace SwanCode.Core.Chat.Models
         public const string Debug = "debug";
     }
 
+    public static class ReasoningEfforts
+    {
+        public const string None = "none";
+        public const string Minimal = "minimal";
+        public const string Low = "low";
+        public const string Medium = "medium";
+        public const string High = "high";
+    }
+
     public class ChatMessage : ViewModelBase
     {
         private string _content = string.Empty;
@@ -21,6 +30,18 @@ namespace SwanCode.Core.Chat.Models
         private bool _hasCodeChanges;
         private List<ToolUseDTO>? _toolUses;
         private List<ToolResultItem>? _toolResults;
+        private string? _reasoningText;
+        private string? _reasoningEffort;
+        private int _promptTokens;
+        private int _completionTokens;
+        private int _totalTokens;
+        private decimal? _costCoins;
+        private decimal? _costUsd;
+        private decimal? _costRub;
+        private decimal? _balanceCoins;
+        private int? _userMessageId;
+        private bool _isStreaming;
+        private bool _isInterrupted;
 
         public string Role { get; set; } = string.Empty;
 
@@ -52,6 +73,107 @@ namespace SwanCode.Core.Chat.Models
         {
             get => _toolResults;
             set => SetProperty(ref _toolResults, value);
+        }
+
+        // Reasoning (REQ-007 / REQ-008, server v0.59.0). Пустые ⟺ ход без размышлений.
+        public string? ReasoningText
+        {
+            get => _reasoningText;
+            set
+            {
+                if (SetProperty(ref _reasoningText, value))
+                    OnPropertyChanged(nameof(HasReasoning));
+            }
+        }
+
+        // Echo фактически применённого effort'а (Router клэмпит на не-reasoning моделях).
+        public string? ReasoningEffort
+        {
+            get => _reasoningEffort;
+            set => SetProperty(ref _reasoningEffort, value);
+        }
+
+        public bool HasReasoning => !string.IsNullOrEmpty(_reasoningText);
+
+        public int PromptTokens
+        {
+            get => _promptTokens;
+            set
+            {
+                if (SetProperty(ref _promptTokens, value))
+                    OnPropertyChanged(nameof(HasTokens));
+            }
+        }
+
+        public int CompletionTokens
+        {
+            get => _completionTokens;
+            set
+            {
+                if (SetProperty(ref _completionTokens, value))
+                    OnPropertyChanged(nameof(HasTokens));
+            }
+        }
+
+        public int TotalTokens
+        {
+            get => _totalTokens;
+            set => SetProperty(ref _totalTokens, value);
+        }
+
+        public bool HasTokens => _promptTokens > 0 || _completionTokens > 0;
+
+        // Cost per-message. Nullable — отсутствие ≠ «0», а «неизвестно»
+        // (биллинг off / цена модели не посчитана / commit failed).
+        public decimal? CostCoins
+        {
+            get => _costCoins;
+            set
+            {
+                if (SetProperty(ref _costCoins, value))
+                    OnPropertyChanged(nameof(HasBilling));
+            }
+        }
+
+        public decimal? CostUsd
+        {
+            get => _costUsd;
+            set => SetProperty(ref _costUsd, value);
+        }
+
+        public decimal? CostRub
+        {
+            get => _costRub;
+            set => SetProperty(ref _costRub, value);
+        }
+
+        public bool HasBilling => _costCoins.HasValue;
+
+        // Баланс пользователя ПОСЛЕ списания этого хода — для обновления шапки без /me запроса.
+        public decimal? BalanceCoins
+        {
+            get => _balanceCoins;
+            set => SetProperty(ref _balanceCoins, value);
+        }
+
+        // SERIAL id user-message на сервере (T-000107) — стабильный якорь для retry / attribution.
+        public int? UserMessageId
+        {
+            get => _userMessageId;
+            set => SetProperty(ref _userMessageId, value);
+        }
+
+        // Streaming flags — модель готова, ChatViewModelBase подключит в T-000067.
+        public bool IsStreaming
+        {
+            get => _isStreaming;
+            set => SetProperty(ref _isStreaming, value);
+        }
+
+        public bool IsInterrupted
+        {
+            get => _isInterrupted;
+            set => SetProperty(ref _isInterrupted, value);
         }
 
         public bool IsUser => Role == MessageRoles.User;
