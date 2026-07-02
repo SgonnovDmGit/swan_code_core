@@ -44,9 +44,6 @@ namespace SwanCode.Core.Services.Api
         [JsonPropertyName("temperature")]
         public double Temperature { get; set; } = 0.7;
 
-        [JsonPropertyName("apiKey")]
-        public string ApiKey { get; set; } = string.Empty;
-
         [JsonPropertyName("thinking")]
         public bool Thinking { get; set; }
     }

@@ -1,20 +1,10 @@
 using System;
-using System.Collections.Generic;
 using System.IO;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 
 namespace SwanCode.Core.Services.AppConfig
 {
-    public class ApiKeyConfig
-    {
-        [JsonPropertyName("key")]
-        public string Key { get; set; } = string.Empty;
-
-        [JsonPropertyName("useOwnKey")]
-        public bool UseOwnKey { get; set; }
-    }
-
     public class AppConfig
     {
         [JsonPropertyName("theme")]
@@ -67,9 +57,6 @@ namespace SwanCode.Core.Services.AppConfig
 
         [JsonPropertyName("userKey")]
         public string UserKey { get; set; } = string.Empty;
-
-        [JsonPropertyName("apiKeys")]
-        public Dictionary<string, ApiKeyConfig> ApiKeys { get; set; } = new();
     }
 
     public static class AppConfigService
