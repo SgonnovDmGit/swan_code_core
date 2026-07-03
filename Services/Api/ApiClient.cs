@@ -1,9 +1,11 @@
 using System;
 using System.Collections.Generic;
+using System.Net;
 using System.Net.Http;
 using System.Net.Http.Headers;
 using System.Text;
 using System.Text.Json;
+using System.Threading;
 using System.Threading.Tasks;
 using SwanCode.Core.Chat.Models;
 
@@ -79,6 +81,180 @@ namespace SwanCode.Core.Services.Api
             var json = JsonSerializer.Serialize(chatRequest);
             request.Content = new StringContent(json, Encoding.UTF8, "application/json");
             return await SendAsync<ChatResponse>(request);
+        }
+
+        /// <summary>
+        /// Async chat submit + автоматический polling результата (ANNOUNCE-007, server v0.51.0).
+        /// POST /v1/api/chat/async с asyncWaitMs:
+        ///   * если AI успел за окно — сервер отдаёт HTTP 200 с обычным ChatResponse (сразу возвращаем);
+        ///   * если не успел — HTTP 202 с ticketId, клиент опрашивает GET /v1/api/chat/{ticketId}/result
+        ///     каждые PollIntervalMs, пока не придёт terminal статус (completed/failed/abandoned).
+        /// CancellationToken прекращает и submit, и polling (кнопка Interrupt в UI).
+        /// </summary>
+        public async Task<ChatResponse> SendChatAsyncAsync(
+            ChatRequest chatRequest,
+            int asyncWaitMs = 2500,
+            CancellationToken cancellationToken = default)
+        {
+            chatRequest.AsyncWaitMs = asyncWaitMs;
+
+            using var request = CreateRequest(HttpMethod.Post, "/v1/api/chat/async");
+            var json = JsonSerializer.Serialize(chatRequest);
+            request.Content = new StringContent(json, Encoding.UTF8, "application/json");
+
+            HttpResponseMessage submitResponse;
+            try
+            {
+                submitResponse = await _http.SendAsync(request, cancellationToken);
+            }
+            catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+            {
+                throw;
+            }
+            catch (HttpRequestException ex)
+            {
+                throw new ApiException("CONNECTION_ERROR", ex.Message);
+            }
+            catch (TaskCanceledException)
+            {
+                throw new ApiException("TIMEOUT", "Request timed out");
+            }
+
+            using (submitResponse)
+            {
+                var submitBody = await submitResponse.Content.ReadAsStringAsync(cancellationToken);
+
+                if (submitResponse.StatusCode == HttpStatusCode.OK)
+                    return DeserializeOrThrow<ChatResponse>(submitBody);
+
+                if (submitResponse.StatusCode == HttpStatusCode.Accepted)
+                {
+                    var submitEnvelope = DeserializeOrThrow<AsyncChatSubmitResponse>(submitBody);
+                    if (string.IsNullOrEmpty(submitEnvelope.TicketId))
+                        throw new ApiException("PARSE_ERROR", "202 response without ticketId");
+
+                    return await PollChatResultAsync(
+                        submitEnvelope.TicketId,
+                        submitEnvelope.SessionId,
+                        cancellationToken);
+                }
+
+                ThrowFromErrorBody(submitResponse, submitBody);
+                throw new ApiException("UNKNOWN", "Unreachable"); // сатисфакция компилятора
+            }
+        }
+
+        /// <summary>
+        /// Интервал между опросами GET /v1/api/chat/{ticketId}/result. Компромисс:
+        /// 1500 ms — достаточно, чтобы не долбить сервер на длинных ходах (обычно 5-30 сек),
+        /// и достаточно быстро для восприятия "живого" ожидания. Сервер не рекомендует
+        /// конкретного значения — на его стороне hold на подписке, poll лишь дёшево читает статус.
+        /// </summary>
+        private const int PollIntervalMs = 1500;
+
+        private async Task<ChatResponse> PollChatResultAsync(
+            string ticketId,
+            string sessionIdFromSubmit,
+            CancellationToken cancellationToken)
+        {
+            while (true)
+            {
+                cancellationToken.ThrowIfCancellationRequested();
+
+                try
+                {
+                    await Task.Delay(PollIntervalMs, cancellationToken);
+                }
+                catch (OperationCanceledException)
+                {
+                    throw;
+                }
+
+                using var pollRequest = CreateRequest(
+                    HttpMethod.Get,
+                    $"/v1/api/chat/{Uri.EscapeDataString(ticketId)}/result");
+
+                HttpResponseMessage pollResponse;
+                try
+                {
+                    pollResponse = await _http.SendAsync(pollRequest, cancellationToken);
+                }
+                catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+                {
+                    throw;
+                }
+                catch (HttpRequestException ex)
+                {
+                    throw new ApiException("CONNECTION_ERROR", ex.Message);
+                }
+                catch (TaskCanceledException)
+                {
+                    throw new ApiException("TIMEOUT", "Polling request timed out");
+                }
+
+                using (pollResponse)
+                {
+                    var pollBody = await pollResponse.Content.ReadAsStringAsync(cancellationToken);
+
+                    if (!pollResponse.IsSuccessStatusCode)
+                    {
+                        ThrowFromErrorBody(pollResponse, pollBody);
+                        return null!; // недостижимо
+                    }
+
+                    var poll = DeserializeOrThrow<AsyncChatPollResponse>(pollBody);
+
+                    switch (poll.Status)
+                    {
+                        case AsyncChatStatus.Pending:
+                            continue;
+
+                        case AsyncChatStatus.Completed:
+                            if (poll.Result == null)
+                                throw new ApiException("PARSE_ERROR", "completed result without body");
+                            // Сервер может не заполнять sessionId внутри result — подмешиваем из envelope.
+                            if (string.IsNullOrEmpty(poll.Result.SessionId))
+                                poll.Result.SessionId = !string.IsNullOrEmpty(poll.SessionId)
+                                    ? poll.SessionId
+                                    : sessionIdFromSubmit;
+                            return poll.Result;
+
+                        case AsyncChatStatus.Failed:
+                        case AsyncChatStatus.Abandoned:
+                            throw new ApiException(
+                                poll.ErrorCode ?? poll.ServiceInfo?.ErrorCode ?? "AI_REQUEST_FAILED",
+                                poll.ErrorMessage ?? poll.Status);
+
+                        default:
+                            throw new ApiException("UNKNOWN_STATUS", $"Unexpected poll status '{poll.Status}'");
+                    }
+                }
+            }
+        }
+
+        private static T DeserializeOrThrow<T>(string body)
+        {
+            var result = JsonSerializer.Deserialize<T>(body);
+            if (result == null)
+                throw new ApiException("PARSE_ERROR", "Failed to parse response");
+            return result;
+        }
+
+        private static void ThrowFromErrorBody(HttpResponseMessage response, string body)
+        {
+            try
+            {
+                var error = JsonSerializer.Deserialize<ErrorResponse>(body);
+                if (error?.ServiceInfo != null)
+                    throw new ApiException(
+                        error.ServiceInfo.ErrorCode ?? "UNKNOWN",
+                        error.Message ?? response.ReasonPhrase ?? "Unknown error");
+            }
+            catch (JsonException) { }
+
+            throw new ApiException(
+                $"HTTP_{(int)response.StatusCode}",
+                response.ReasonPhrase ?? "Unknown error");
         }
 
         public async Task<MeResponse> GetMeAsync()

@@ -56,6 +56,79 @@ namespace SwanCode.Core.Services.Api
         [JsonPropertyName("reasoningEffort")]
         [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
         public string? ReasoningEffort { get; set; }
+
+        /// <summary>
+        /// ANNOUNCE-007 (server v0.51.0): только для POST /v1/api/chat/async — сколько ms
+        /// сервер держит submit ждущим быстрого ответа. Default 2500, диапазон [100, 30000].
+        /// omitempty → сервер применит собственный default. На /v1/api/chat молча игнорируется.
+        /// </summary>
+        [JsonPropertyName("asyncWaitMs")]
+        [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+        public int? AsyncWaitMs { get; set; }
+    }
+
+    // --- Async chat (ANNOUNCE-007 / server v0.51.0) ---
+
+    public static class AsyncChatStatus
+    {
+        public const string Pending = "pending";
+        public const string Completed = "completed";
+        public const string Failed = "failed";
+        public const string Abandoned = "abandoned";
+    }
+
+    /// <summary>
+    /// HTTP 202 envelope от POST /v1/api/chat/async, когда AI не успел ответить за asyncWaitMs.
+    /// Клиент читает ticketId и переходит к GET /v1/api/chat/{ticketId}/result.
+    /// </summary>
+    public class AsyncChatSubmitResponse
+    {
+        [JsonPropertyName("serviceInfo")]
+        public ServiceInfo ServiceInfo { get; set; } = new();
+
+        [JsonPropertyName("ticketId")]
+        public string TicketId { get; set; } = string.Empty;
+
+        [JsonPropertyName("status")]
+        public string Status { get; set; } = string.Empty;
+
+        [JsonPropertyName("sessionId")]
+        public string SessionId { get; set; } = string.Empty;
+
+        [JsonPropertyName("userMessageId")]
+        public int? UserMessageId { get; set; }
+
+        [JsonPropertyName("title")]
+        public string? Title { get; set; }
+    }
+
+    /// <summary>
+    /// Ответ GET /v1/api/chat/{ticketId}/result. Разные статусы дают разный набор полей:
+    /// pending → только ticketId/status/sessionId; completed → result (ChatResponse);
+    /// failed/abandoned → errorCode/errorMessage (serviceInfo.success=false, но HTTP всё ещё 200).
+    /// </summary>
+    public class AsyncChatPollResponse
+    {
+        [JsonPropertyName("serviceInfo")]
+        public ServiceInfo ServiceInfo { get; set; } = new();
+
+        [JsonPropertyName("ticketId")]
+        public string TicketId { get; set; } = string.Empty;
+
+        [JsonPropertyName("status")]
+        public string Status { get; set; } = string.Empty;
+
+        [JsonPropertyName("sessionId")]
+        public string SessionId { get; set; } = string.Empty;
+
+        [JsonPropertyName("result")]
+        public ChatResponse? Result { get; set; }
+
+        [JsonPropertyName("errorCode")]
+        public string? ErrorCode { get; set; }
+
+        [JsonPropertyName("errorMessage")]
+        public string? ErrorMessage { get; set; }
     }
 
     public class ChatResponse
