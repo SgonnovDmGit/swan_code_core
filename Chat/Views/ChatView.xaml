@@ -34,20 +34,9 @@
         <DataTemplate x:Key="AssistantTemplate">
             <StackPanel Margin="0,10,60,10">
 
-                <!-- Header: avatar + streaming badge -->
-                <StackPanel Orientation="Horizontal" Margin="0,0,0,6">
-                    <Border Width="22" Height="22"
-                            CornerRadius="11"
-                            BorderBrush="{DynamicResource AccentColor}"
-                            BorderThickness="1.5">
-                        <TextBlock Text="L"
-                                   Foreground="{DynamicResource AccentColor}"
-                                   FontSize="10"
-                                   FontWeight="SemiBold"
-                                   HorizontalAlignment="Center"
-                                   VerticalAlignment="Center"/>
-                    </Border>
-                    <Border Margin="8,0,0,0"
+                <!-- Header: streaming/interrupted badges only (avatar-буква убрана — переработается в v0.12.0 брендовом ревью). Каждый badge сам коллапсится, StackPanel сожмётся. -->
+                <StackPanel Orientation="Horizontal" Margin="0,0,0,0">
+                    <Border Margin="0,0,0,0"
                             Padding="6,2"
                             CornerRadius="3"
                             Background="{DynamicResource AccentColor}"
