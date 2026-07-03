@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
+using System.Threading;
 using System.Threading.Tasks;
 using System.Windows.Input;
 using SwanCode.Core.Chat.Models;
@@ -25,6 +26,10 @@ namespace SwanCode.Core.Chat.ViewModels
         private string _inputText = string.Empty;
         private string _sessionId = string.Empty;
         private bool _isBusy;
+
+        // CTS активного SendMessageAsync — заменяется на новый в каждом заходе,
+        // используется InterruptCommand для отмены submit+poll (ANNOUNCE-007).
+        private CancellationTokenSource? _currentSendCts;
 
         public ObservableCollection<ChatMessage> Messages { get; } = new();
 
@@ -55,6 +60,7 @@ namespace SwanCode.Core.Chat.ViewModels
 
         public ICommand SendMessageCommand { get; }
         public ICommand NewChatCommand { get; }
+        public ICommand InterruptCommand { get; }
 
         protected ChatViewModelBase(ApiClient api)
         {
@@ -64,7 +70,21 @@ namespace SwanCode.Core.Chat.ViewModels
                 () => _ = SendMessageAsync(InputText, "free_form"),
                 () => !string.IsNullOrWhiteSpace(InputText) && !IsBusy);
 
-            NewChatCommand = new RelayCommand(NewChat);
+            NewChatCommand = new RelayCommand(NewChat, () => !IsBusy);
+
+            InterruptCommand = new RelayCommand(
+                Interrupt,
+                () => IsBusy && _currentSendCts is { IsCancellationRequested: false });
+        }
+
+        /// <summary>
+        /// Прервать активный chat-ход (submit /chat/async или его polling). Идемпотентно —
+        /// повторные клики после Cancel до окончания finally-блока не бросают исключение.
+        /// </summary>
+        public void Interrupt()
+        {
+            try { _currentSendCts?.Cancel(); }
+            catch (ObjectDisposedException) { /* race с finally SendMessageAsync — ok */ }
         }
 
         // --- Tool dispatch ---------------------------------------------------
@@ -223,15 +243,22 @@ namespace SwanCode.Core.Chat.ViewModels
             InputText = string.Empty;
             IsBusy = true;
 
+            var cts = new CancellationTokenSource();
+            _currentSendCts = cts;
+
             try
             {
                 var request = BuildRequest(message, promptCode);
-                var response = await Api.SendChatAsync(request);
+                var response = await Api.SendChatAsyncAsync(request, cancellationToken: cts.Token);
 
                 if (!string.IsNullOrEmpty(response.SessionId))
                     SessionId = response.SessionId;
 
                 await HandleChatResponseAsync(response);
+            }
+            catch (OperationCanceledException) when (cts.IsCancellationRequested)
+            {
+                await OnChatInterruptedAsync();
             }
             catch (ApiException ex)
             {
@@ -243,8 +270,25 @@ namespace SwanCode.Core.Chat.ViewModels
             }
             finally
             {
+                _currentSendCts = null;
+                cts.Dispose();
                 IsBusy = false;
             }
+        }
+
+        /// <summary>
+        /// Наследник может переопределить для локализации / особого UI. Default —
+        /// добавляет системное сообщение о прерывании. Билинг hold сервер отпустит
+        /// сам по istekшему TTL (abandoned) либо по завершению уже запущенного хода.
+        /// </summary>
+        protected virtual Task OnChatInterruptedAsync()
+        {
+            Messages.Add(new ChatMessage
+            {
+                Role = MessageRoles.Debug,
+                Content = "⏹ Прервано пользователем"
+            });
+            return Task.CompletedTask;
         }
 
         /// <summary>
