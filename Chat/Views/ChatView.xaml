@@ -13,6 +13,7 @@
         <helpers:BoolToVisibilityConverter x:Key="BoolToVis"/>
         <helpers:EmptyStringToVisibilityConverter x:Key="EmptyToVis"/>
         <helpers:CollectionToVisibilityConverter x:Key="CollToVis"/>
+        <helpers:StringToVisibilityConverter x:Key="StringToVisibilityConverter"/>
 
         <!-- ================= USER ================= -->
         <DataTemplate x:Key="UserTemplate">
