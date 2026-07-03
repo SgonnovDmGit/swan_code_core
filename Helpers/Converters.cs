@@ -88,12 +88,18 @@ namespace SwanCode.Core.Helpers
         }
     }
 
-    /// <summary>Обратный StringToVisibilityConverter — пустое → Visible (для placeholder-текста в TextBox).</summary>
+    /// <summary>Обратный StringToVisibilityConverter — пустое → Visible (для placeholder-текста в TextBox).
+    /// ConverterParameter="invert" переворачивает: непустое → Visible (для контентных блоков, которые
+    /// прячутся когда строка пустая).</summary>
     public class EmptyStringToVisibilityConverter : IValueConverter
     {
         public object Convert(object value, Type targetType, object parameter, CultureInfo culture)
         {
-            return string.IsNullOrEmpty(value as string) ? Visibility.Visible : Visibility.Collapsed;
+            var isEmpty = string.IsNullOrEmpty(value as string);
+            var invert = string.Equals(parameter as string, "invert", StringComparison.OrdinalIgnoreCase);
+            if (invert)
+                return isEmpty ? Visibility.Collapsed : Visibility.Visible;
+            return isEmpty ? Visibility.Visible : Visibility.Collapsed;
         }
 
         public object ConvertBack(object value, Type targetType, object parameter, CultureInfo culture)
