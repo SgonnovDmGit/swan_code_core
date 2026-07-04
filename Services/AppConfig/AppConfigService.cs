@@ -61,11 +61,64 @@ namespace SwanCode.Core.Services.AppConfig
 
     public static class AppConfigService
     {
-        private static readonly string ConfigDir = Path.Combine(
-            Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
-            "SwanCodeClient");
+        /// <summary>Legacy-папка, которую до v0.12.x делили оба продукта.</summary>
+        private const string LegacyFolderName = "SwanCodeClient";
 
-        private static readonly string ConfigPath = Path.Combine(ConfigDir, "config.json");
+        private static string _folderName = LegacyFolderName;
+
+        /// <summary>
+        /// Задаёт продуктовую папку настроек (IProductBranding.ConfigFolderName) и один раз
+        /// мигрирует *.json из legacy-папки. Вызывать в App.OnStartup до первого Load().
+        /// Без вызова работает legacy-путь — поведение до v0.12.x.
+        /// </summary>
+        public static void Initialize(string folderName)
+        {
+            if (string.IsNullOrWhiteSpace(folderName))
+                return;
+
+            _folderName = folderName;
+            MigrateFromLegacy();
+        }
+
+        /// <summary>Полный путь продуктовой папки настроек (для window.json и т.п.).</summary>
+        public static string ConfigDirectory => ConfigDir;
+
+        private static string ConfigDir => Path.Combine(
+            Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
+            _folderName);
+
+        private static string ConfigPath => Path.Combine(ConfigDir, "config.json");
+
+        private static void MigrateFromLegacy()
+        {
+            try
+            {
+                if (_folderName == LegacyFolderName)
+                    return;
+
+                var legacyDir = Path.Combine(
+                    Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
+                    LegacyFolderName);
+                if (!Directory.Exists(legacyDir))
+                    return;
+
+                // Копируем только отсутствующие файлы; legacy-папку не трогаем —
+                // второй продукт мигрирует из неё независимо.
+                foreach (var src in Directory.GetFiles(legacyDir, "*.json"))
+                {
+                    var dst = Path.Combine(ConfigDir, Path.GetFileName(src));
+                    if (File.Exists(dst))
+                        continue;
+
+                    Directory.CreateDirectory(ConfigDir);
+                    File.Copy(src, dst);
+                }
+            }
+            catch
+            {
+                // Миграция best-effort: при сбое продукт стартует с дефолтами
+            }
+        }
 
         private static readonly JsonSerializerOptions JsonOptions = new()
         {

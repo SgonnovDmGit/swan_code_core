@@ -17,7 +17,7 @@
     <sys:String x:Key="str_ChangeKeyConfirm">Сменить user-ключ?</sys:String>
     <sys:String x:Key="str_NotConfigured">Не настроен</sys:String>
     <sys:String x:Key="str_BalanceCoins">монет</sys:String>
-    <sys:String x:Key="str_NoKeyHint">Нет ключа? Свяжитесь с администратором проекта SwanCode.</sys:String>
+    <sys:String x:Key="str_NoKeyHint">Нет ключа? Свяжитесь с администратором проекта.</sys:String>
 
     <!-- Диалоги ядра: ErrorExplainDialog -->
     <sys:String x:Key="str_ErrorExplainTitle">Объяснить ошибку</sys:String>

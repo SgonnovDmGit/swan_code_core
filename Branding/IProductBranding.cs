@@ -14,7 +14,7 @@ namespace SwanCode.Core.Branding
         string ProductKey { get; }
 
         /// <summary>
-        /// Человекочитаемое имя продукта (например, "Swan Code 1C" или "Swan Code Universal").
+        /// Человекочитаемое имя продукта (например, "LenSa Dev 1C" или "LenSa Universal").
         /// Подставляется в заголовки окон, тостеры, диалоги ядра.
         /// </summary>
         string DisplayName { get; }
@@ -23,5 +23,13 @@ namespace SwanCode.Core.Branding
         /// Акцентный цвет в формате HTML hex ("#RRGGBB"). В v0.11.0 одинаков для всех продуктов ("#0066CC").
         /// </summary>
         string AccentColorHex { get; }
+
+        /// <summary>
+        /// Имя папки продукта под %LocalAppData% для config.json / window.json и т.п.
+        /// (например, "LenSaDev1C" или "LenSaUniversal"). До v0.12.x оба продукта
+        /// делили одну папку "SwanCodeClient" — теперь каждый хранит настройки у себя;
+        /// AppConfigService.Initialize мигрирует старые файлы при первом старте.
+        /// </summary>
+        string ConfigFolderName { get; }
     }
 }

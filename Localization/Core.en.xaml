@@ -17,7 +17,7 @@
     <sys:String x:Key="str_ChangeKeyConfirm">Change user key?</sys:String>
     <sys:String x:Key="str_NotConfigured">Not configured</sys:String>
     <sys:String x:Key="str_BalanceCoins">coins</sys:String>
-    <sys:String x:Key="str_NoKeyHint">No key? Contact your SwanCode project administrator.</sys:String>
+    <sys:String x:Key="str_NoKeyHint">No key? Contact your project administrator.</sys:String>
 
     <!-- Core dialogs: ErrorExplainDialog -->
     <sys:String x:Key="str_ErrorExplainTitle">Explain Error</sys:String>
