@@ -50,6 +50,14 @@ namespace SwanCode.Core.Services.AppConfig
         [JsonPropertyName("reasoningEffort")]
         public string ReasoningEffort { get; set; } = "high";
 
+        // 1С-клиент: известные базы сайдбара («key|name|path», T-000092); Universal игнорирует.
+        [JsonPropertyName("knownBases")]
+        public System.Collections.Generic.List<string> KnownBases { get; set; } = new();
+
+        // 1С-клиент: режим работы AI planning|auto|review (T-000094, пока визуальный стаб).
+        [JsonPropertyName("assistMode")]
+        public string AssistMode { get; set; } = "auto";
+
         [JsonPropertyName("debugMode")]
         public bool DebugMode { get; set; }
 
