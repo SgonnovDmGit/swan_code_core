@@ -46,6 +46,10 @@ namespace SwanCode.Core.Services.AppConfig
         [JsonPropertyName("useThinking")]
         public bool UseThinking { get; set; }
 
+        // Уровень размышлений minimal|low|medium|high (REQ-007 контракта). Действует при useThinking.
+        [JsonPropertyName("reasoningEffort")]
+        public string ReasoningEffort { get; set; } = "high";
+
         [JsonPropertyName("debugMode")]
         public bool DebugMode { get; set; }
 
