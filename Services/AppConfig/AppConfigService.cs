@@ -57,6 +57,32 @@ namespace SwanCode.Core.Services.AppConfig
 
         [JsonPropertyName("userKey")]
         public string UserKey { get; set; } = string.Empty;
+
+        // --- Маркеры изменений кода (1С-клиент, v0.13.0 T-000089; Universal игнорирует) ---
+
+        [JsonPropertyName("changeMarkersEnabled")]
+        public bool ChangeMarkersEnabled { get; set; } = true;
+
+        [JsonPropertyName("currentTaskId")]
+        public string CurrentTaskId { get; set; } = string.Empty;
+
+        [JsonPropertyName("markerAuthorName")]
+        public string MarkerAuthorName { get; set; } = string.Empty;
+
+        [JsonPropertyName("markerTemplate")]
+        public string MarkerTemplate { get; set; } = "{task}_{name}_{date}";
+
+        [JsonPropertyName("markerDateFormat")]
+        public string MarkerDateFormat { get; set; } = "dd.MM.yyyy";
+
+        [JsonPropertyName("markerClosingEnabled")]
+        public bool MarkerClosingEnabled { get; set; } = true;
+
+        [JsonPropertyName("markerCollapseSeam")]
+        public bool MarkerCollapseSeam { get; set; }
+
+        [JsonPropertyName("markerOldAboveNew")]
+        public bool MarkerOldAboveNew { get; set; } = true;
     }
 
     public static class AppConfigService
