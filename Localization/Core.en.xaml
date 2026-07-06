@@ -48,6 +48,7 @@
     <sys:String x:Key="str_Chat_Streaming">streaming</sys:String>
     <sys:String x:Key="str_Chat_Interrupted">interrupted</sys:String>
     <sys:String x:Key="str_Chat_Thinking">thinking…</sys:String>
+    <sys:String x:Key="str_Chat_ToolContinue">Tool finished — processing the result…</sys:String>
 
     <!-- Reasoning block -->
     <sys:String x:Key="str_Chat_Reasoning">Reasoning</sys:String>

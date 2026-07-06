@@ -87,8 +87,9 @@ namespace SwanCode.Core.Services.AppConfig
         [JsonPropertyName("markerDateFormat")]
         public string MarkerDateFormat { get; set; } = "dd.MM.yyyy";
 
-        [JsonPropertyName("markerClosingEnabled")]
-        public bool MarkerClosingEnabled { get; set; } = true;
+        // Суффикс закрывающего маркера; пустой = закрывающих нет (заменил булев markerClosingEnabled)
+        [JsonPropertyName("markerClosingSuffix")]
+        public string MarkerClosingSuffix { get; set; } = "окончание";
 
         [JsonPropertyName("markerCollapseSeam")]
         public bool MarkerCollapseSeam { get; set; }

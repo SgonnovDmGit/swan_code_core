@@ -48,6 +48,7 @@
     <sys:String x:Key="str_Chat_Streaming">стрим</sys:String>
     <sys:String x:Key="str_Chat_Interrupted">прервано</sys:String>
     <sys:String x:Key="str_Chat_Thinking">думаю…</sys:String>
+    <sys:String x:Key="str_Chat_ToolContinue">Инструмент отработал — обрабатываю результат…</sys:String>
 
     <!-- Reasoning block -->
     <sys:String x:Key="str_Chat_Reasoning">Размышления</sys:String>

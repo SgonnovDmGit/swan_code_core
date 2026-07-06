@@ -161,20 +161,34 @@ namespace SwanCode.Core.Chat.ViewModels
         {
             if (string.IsNullOrEmpty(SessionId) || results.Count == 0) return;
 
+            // Транзиентный «AI продолжает…» на время round-trip'а tool-results: без него
+            // после срабатывания тула диалог выглядит замершим, хотя ход ещё не закончен.
+            var waiting = new ChatMessage
+            {
+                Role = MessageRoles.Assistant,
+                IsThinking = true,
+                Content = System.Windows.Application.Current?.TryFindResource("str_Chat_ToolContinue") as string
+                          ?? "Обрабатываю результат инструмента…"
+            };
+            Messages.Add(waiting);
+
             try
             {
                 var retry = await Api.PostToolResultsAsync(SessionId, results);
                 if (!string.IsNullOrEmpty(retry.SessionId))
                     SessionId = retry.SessionId;
 
+                Messages.Remove(waiting);
                 await HandleToolRetryResponseAsync(retry);
             }
             catch (ApiException ex)
             {
+                Messages.Remove(waiting);
                 await OnApiExceptionAsync(ex);
             }
             catch (Exception ex)
             {
+                Messages.Remove(waiting);
                 await OnUnexpectedExceptionAsync(ex);
             }
         }
