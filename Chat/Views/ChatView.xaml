@@ -179,15 +179,19 @@
                             Margin="0,4,0,0">
                     <Button Content="⧉"
                             ToolTip="{DynamicResource str_Chat_ActionCopy}"
+                            Click="CopyMessage_Click"
                             Padding="6,3" Margin="0,0,2,0" FontSize="11"/>
                     <Button Content="❝"
                             ToolTip="{DynamicResource str_Chat_ActionQuote}"
+                            Click="QuoteMessage_Click"
                             Padding="6,3" Margin="0,0,2,0" FontSize="11"/>
                     <Button Content="↻"
                             ToolTip="{DynamicResource str_Chat_ActionRetry}"
+                            Click="RetryMessage_Click"
                             Padding="6,3" Margin="0,0,2,0" FontSize="11"/>
                     <Button Content="ⓘ"
                             ToolTip="{DynamicResource str_Chat_ActionInfo}"
+                            Click="InfoMessage_Click"
                             Padding="6,3" FontSize="11"
                             Foreground="{DynamicResource AccentColor}">
                         <Button.ContextMenu>

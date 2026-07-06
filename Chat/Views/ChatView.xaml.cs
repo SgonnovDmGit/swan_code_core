@@ -33,6 +33,53 @@ namespace SwanCode.Core.Chat.Views
             }
         }
 
+        // --- Кнопки под сообщением ассистента (T-000104) --------------------
+
+        private void CopyMessage_Click(object sender, RoutedEventArgs e)
+        {
+            if ((sender as FrameworkElement)?.DataContext is not ChatMessage msg) return;
+            try { Clipboard.SetText(msg.Content ?? string.Empty); } catch { /* клипборд занят другим процессом */ }
+        }
+
+        private void QuoteMessage_Click(object sender, RoutedEventArgs e)
+        {
+            if ((sender as FrameworkElement)?.DataContext is not ChatMessage msg) return;
+            if (DataContext is not ChatViewModelBase vm) return;
+
+            var lines = (msg.Content ?? string.Empty).Replace("\r\n", "\n").Split('\n');
+            var quoted = string.Join("\n", System.Linq.Enumerable.Select(lines, l => "> " + l)) + "\n\n";
+            vm.InputText = quoted + vm.InputText;
+
+            InputTextBox.Focus();
+            InputTextBox.CaretIndex = InputTextBox.Text.Length;
+        }
+
+        // Регенерации на сервере нет (сессия хранит историю) — retry повторяет
+        // предыдущий юзерский запрос новым ходом.
+        private void RetryMessage_Click(object sender, RoutedEventArgs e)
+        {
+            if ((sender as FrameworkElement)?.DataContext is not ChatMessage msg) return;
+            if (DataContext is not ChatViewModelBase vm) return;
+
+            var idx = vm.Messages.IndexOf(msg);
+            for (int i = (idx >= 0 ? idx : vm.Messages.Count) - 1; i >= 0; i--)
+            {
+                if (vm.Messages[i].Role != MessageRoles.User) continue;
+
+                vm.InputText = vm.Messages[i].Content ?? string.Empty;
+                if (vm.SendMessageCommand.CanExecute(null))
+                    vm.SendMessageCommand.Execute(null);
+                return;
+            }
+        }
+
+        private void InfoMessage_Click(object sender, RoutedEventArgs e)
+        {
+            if (sender is not Button btn || btn.ContextMenu == null) return;
+            btn.ContextMenu.PlacementTarget = btn;
+            btn.ContextMenu.IsOpen = true;
+        }
+
         // RichTextBox сообщений глотает колесо мыши даже без своих скроллбаров —
         // пробрасываем событие родительскому ScrollViewer треда.
         private void MessageBody_PreviewMouseWheel(object sender, MouseWheelEventArgs e)
