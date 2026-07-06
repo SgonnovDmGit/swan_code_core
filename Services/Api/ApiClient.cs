@@ -312,6 +312,37 @@ namespace SwanCode.Core.Services.Api
             return await SendAsync<ChatToolRetryResponse>(request);
         }
 
+        // --- История диалогов (T-000106) ----------------------------------
+
+        /// <summary>
+        /// Список диалогов пользователя (GET /v1/api/sessions, cursor-режим v0.52.0):
+        /// сортировка по активности (lastMessageAt DESC). cursor — nextCursor из
+        /// предыдущей страницы, null — первая страница.
+        /// </summary>
+        public async Task<SessionsListResponse> GetSessionsAsync(int limit = 50, string? cursor = null)
+        {
+            var path = $"/v1/api/sessions?limit={limit}";
+            if (!string.IsNullOrEmpty(cursor))
+                path += $"&cursor={Uri.EscapeDataString(cursor)}";
+            using var request = CreateRequest(HttpMethod.Get, path);
+            return await SendAsync<SessionsListResponse>(request);
+        }
+
+        /// <summary>
+        /// История чата диалога (GET /v1/api/sessions/{id}/messages). Сообщения по
+        /// возрастанию id; before — id верхнего сообщения текущей страницы для
+        /// подгрузки более старых. Чужая/несуществующая сессия → 404 SESSION_NOT_FOUND.
+        /// </summary>
+        public async Task<SessionMessagesResponse> GetSessionMessagesAsync(
+            string sessionId, int limit = 50, int? before = null)
+        {
+            var path = $"/v1/api/sessions/{Uri.EscapeDataString(sessionId)}/messages?limit={limit}";
+            if (before.HasValue)
+                path += $"&before={before.Value}";
+            using var request = CreateRequest(HttpMethod.Get, path);
+            return await SendAsync<SessionMessagesResponse>(request);
+        }
+
         // SSE-стрим (POST /v1/api/chat/stream) отключён на сервере с ANNOUNCE-004 v0.33.0 —
         // сервер безусловно отвечает 501 STREAMING_NOT_SUPPORTED, пока Router-SSE не вернётся.
         // Клиентский метод SendChatStreamAsync (и модель SseDoneData) удалены — восстановим,

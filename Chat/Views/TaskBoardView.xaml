@@ -1,0 +1,170 @@
+<UserControl x:Class="SwanCode.Core.Chat.Views.TaskBoardView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             mc:Ignorable="d"
+             d:DesignHeight="220" d:DesignWidth="480"
+             Background="{DynamicResource PrimaryBackground}">
+
+    <!-- T-000076: визуальная заготовка доски задач.
+         Dummy-данные хардкодом, без биндингов к VM — подключение в v0.14.0. -->
+
+    <UserControl.Resources>
+        <!-- Строка таблицы: компактная, с нижним бордером -->
+        <Style x:Key="TaskRowBorder" TargetType="Border">
+            <Setter Property="BorderBrush" Value="{DynamicResource BorderColor}"/>
+            <Setter Property="BorderThickness" Value="0,0,0,1"/>
+            <Setter Property="Padding" Value="8,5"/>
+        </Style>
+
+        <!-- Текст задачи -->
+        <Style x:Key="TaskText" TargetType="TextBlock">
+            <Setter Property="FontSize" Value="12"/>
+            <Setter Property="Foreground" Value="{DynamicResource PrimaryForeground}"/>
+            <Setter Property="VerticalAlignment" Value="Center"/>
+            <Setter Property="TextTrimming" Value="CharacterEllipsis"/>
+        </Style>
+
+        <!-- Внешний id -->
+        <Style x:Key="TaskExternalId" TargetType="TextBlock">
+            <Setter Property="FontSize" Value="12"/>
+            <Setter Property="Foreground" Value="{DynamicResource SecondaryForeground}"/>
+            <Setter Property="VerticalAlignment" Value="Center"/>
+            <Setter Property="Margin" Value="8,0"/>
+        </Style>
+
+        <!-- Чип статуса AI: цвет текста задаётся на месте -->
+        <Style x:Key="StatusChipBorder" TargetType="Border">
+            <Setter Property="Background" Value="{DynamicResource ToolCardBackground}"/>
+            <Setter Property="BorderBrush" Value="{DynamicResource ToolCardBorder}"/>
+            <Setter Property="BorderThickness" Value="1"/>
+            <Setter Property="CornerRadius" Value="4"/>
+            <Setter Property="Padding" Value="6,1"/>
+            <Setter Property="VerticalAlignment" Value="Center"/>
+            <Setter Property="HorizontalAlignment" Value="Left"/>
+        </Style>
+        <Style x:Key="StatusChipText" TargetType="TextBlock">
+            <Setter Property="FontSize" Value="11"/>
+            <Setter Property="VerticalAlignment" Value="Center"/>
+        </Style>
+
+        <Style x:Key="TaskCheckBox" TargetType="CheckBox">
+            <Setter Property="VerticalAlignment" Value="Center"/>
+            <Setter Property="Margin" Value="0,0,8,0"/>
+        </Style>
+    </UserControl.Resources>
+
+    <Border Background="{DynamicResource SecondaryBackground}"
+            BorderBrush="{DynamicResource BorderColor}"
+            BorderThickness="1"
+            CornerRadius="6">
+        <Grid Grid.IsSharedSizeScope="True">
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="*"/>
+            </Grid.RowDefinitions>
+
+            <!-- Заголовок панели -->
+            <Border Grid.Row="0"
+                    Background="{DynamicResource TertiaryBackground}"
+                    BorderBrush="{DynamicResource BorderColor}"
+                    BorderThickness="0,0,0,1"
+                    Padding="8,5"
+                    CornerRadius="6,6,0,0">
+                <TextBlock Text="ЗАДАЧИ"
+                           FontSize="10"
+                           FontWeight="SemiBold"
+                           Foreground="{DynamicResource SecondaryForeground}"/>
+            </Border>
+
+            <!-- Строка 1: выполнено -->
+            <Border Grid.Row="1" Style="{StaticResource TaskRowBorder}">
+                <Grid>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="Auto" SharedSizeGroup="colCheck"/>
+                        <ColumnDefinition Width="*"/>
+                        <ColumnDefinition Width="Auto" SharedSizeGroup="colId"/>
+                        <ColumnDefinition Width="Auto" SharedSizeGroup="colStatus"/>
+                    </Grid.ColumnDefinitions>
+                    <CheckBox Grid.Column="0" Style="{StaticResource TaskCheckBox}" IsChecked="True"/>
+                    <TextBlock Grid.Column="1" Style="{StaticResource TaskText}"
+                               Text="Прочитать модуль РаботаСБанками"/>
+                    <TextBlock Grid.Column="2" Style="{StaticResource TaskExternalId}" Text="T-343434"/>
+                    <Border Grid.Column="3" Style="{StaticResource StatusChipBorder}">
+                        <TextBlock Style="{StaticResource StatusChipText}"
+                                   Text="выполнено"
+                                   Foreground="{DynamicResource SuccessColor}"/>
+                    </Border>
+                </Grid>
+            </Border>
+
+            <!-- Строка 2: в работе -->
+            <Border Grid.Row="2" Style="{StaticResource TaskRowBorder}">
+                <Grid>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="Auto" SharedSizeGroup="colCheck"/>
+                        <ColumnDefinition Width="*"/>
+                        <ColumnDefinition Width="Auto" SharedSizeGroup="colId"/>
+                        <ColumnDefinition Width="Auto" SharedSizeGroup="colStatus"/>
+                    </Grid.ColumnDefinitions>
+                    <CheckBox Grid.Column="0" Style="{StaticResource TaskCheckBox}"/>
+                    <TextBlock Grid.Column="1" Style="{StaticResource TaskText}"
+                               Text="Добавить проверку счёта"/>
+                    <TextBlock Grid.Column="2" Style="{StaticResource TaskExternalId}" Text="—"/>
+                    <Border Grid.Column="3" Style="{StaticResource StatusChipBorder}">
+                        <TextBlock Style="{StaticResource StatusChipText}"
+                                   Text="в работе"
+                                   Foreground="{DynamicResource AccentColor}"/>
+                    </Border>
+                </Grid>
+            </Border>
+
+            <!-- Строка 3: ожидает -->
+            <Border Grid.Row="3" Style="{StaticResource TaskRowBorder}">
+                <Grid>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="Auto" SharedSizeGroup="colCheck"/>
+                        <ColumnDefinition Width="*"/>
+                        <ColumnDefinition Width="Auto" SharedSizeGroup="colId"/>
+                        <ColumnDefinition Width="Auto" SharedSizeGroup="colStatus"/>
+                    </Grid.ColumnDefinitions>
+                    <CheckBox Grid.Column="0" Style="{StaticResource TaskCheckBox}"/>
+                    <TextBlock Grid.Column="1" Style="{StaticResource TaskText}"
+                               Text="Прогнать синтакс-контроль"/>
+                    <TextBlock Grid.Column="2" Style="{StaticResource TaskExternalId}" Text="—"/>
+                    <Border Grid.Column="3" Style="{StaticResource StatusChipBorder}">
+                        <TextBlock Style="{StaticResource StatusChipText}"
+                                   Text="ожидает"
+                                   Foreground="{DynamicResource SecondaryForeground}"/>
+                    </Border>
+                </Grid>
+            </Border>
+
+            <!-- Строка 4: ожидает -->
+            <Border Grid.Row="4" Style="{StaticResource TaskRowBorder}">
+                <Grid>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="Auto" SharedSizeGroup="colCheck"/>
+                        <ColumnDefinition Width="*"/>
+                        <ColumnDefinition Width="Auto" SharedSizeGroup="colId"/>
+                        <ColumnDefinition Width="Auto" SharedSizeGroup="colStatus"/>
+                    </Grid.ColumnDefinitions>
+                    <CheckBox Grid.Column="0" Style="{StaticResource TaskCheckBox}"/>
+                    <TextBlock Grid.Column="1" Style="{StaticResource TaskText}"
+                               Text="Обновить обработку выгрузки платёжек"/>
+                    <TextBlock Grid.Column="2" Style="{StaticResource TaskExternalId}" Text="T-343511"/>
+                    <Border Grid.Column="3" Style="{StaticResource StatusChipBorder}">
+                        <TextBlock Style="{StaticResource StatusChipText}"
+                                   Text="ожидает"
+                                   Foreground="{DynamicResource SecondaryForeground}"/>
+                    </Border>
+                </Grid>
+            </Border>
+        </Grid>
+    </Border>
+</UserControl>

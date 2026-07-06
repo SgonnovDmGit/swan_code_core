@@ -64,6 +64,10 @@ namespace SwanCode.Core.Services.AppConfig
         [JsonPropertyName("minimizeToTray")]
         public bool MinimizeToTray { get; set; }
 
+        // 1С-клиент: свёрнут ли сайдбар конфигураторов (T-000099); Universal игнорирует.
+        [JsonPropertyName("sidebarCollapsed")]
+        public bool SidebarCollapsed { get; set; }
+
         [JsonPropertyName("alwaysOnTop")]
         public bool AlwaysOnTop { get; set; }
 

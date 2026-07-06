@@ -507,6 +507,165 @@ namespace SwanCode.Core.Services.Api
         public ToolResultItem[] Results { get; set; } = Array.Empty<ToolResultItem>();
     }
 
+    // --- История диалогов (T-000106) ---
+
+    /// <summary>
+    /// Элемент списка GET /v1/api/sessions: id + title (авто из первого сообщения,
+    /// REQ-021) + модель + даты. lastMessageAt — денорм активности; если сообщений
+    /// нет, сервер отдаёт createdAt.
+    /// </summary>
+    public class SessionDto
+    {
+        [JsonPropertyName("id")]
+        public string Id { get; set; } = string.Empty;
+
+        [JsonPropertyName("title")]
+        public string? Title { get; set; }
+
+        [JsonPropertyName("model")]
+        public string Model { get; set; } = string.Empty;
+
+        [JsonPropertyName("createdAt")]
+        public string CreatedAt { get; set; } = string.Empty;
+
+        [JsonPropertyName("lastMessageAt")]
+        public string LastMessageAt { get; set; } = string.Empty;
+
+        [JsonPropertyName("lastMessagePreview")]
+        public string? LastMessagePreview { get; set; }
+    }
+
+    /// <summary>
+    /// Ответ GET /v1/api/sessions (cursor-режим, server v0.52.0):
+    /// сортировка lastMessageAt DESC, hasMore/nextCursor для подгрузки следующих страниц.
+    /// </summary>
+    public class SessionsListResponse
+    {
+        [JsonPropertyName("serviceInfo")]
+        public ServiceInfo ServiceInfo { get; set; } = new();
+
+        [JsonPropertyName("sessions")]
+        public SessionDto[] Sessions { get; set; } = Array.Empty<SessionDto>();
+
+        [JsonPropertyName("total")]
+        public int Total { get; set; }
+
+        [JsonPropertyName("hasMore")]
+        public bool HasMore { get; set; }
+
+        [JsonPropertyName("nextCursor")]
+        public string? NextCursor { get; set; }
+
+        [JsonPropertyName("limit")]
+        public int Limit { get; set; }
+    }
+
+    /// <summary>Заголовок/модель диалога в ответе /messages (omitempty на сервере).</summary>
+    public class SessionInfoDto
+    {
+        [JsonPropertyName("title")]
+        public string? Title { get; set; }
+
+        [JsonPropertyName("model")]
+        public string? Model { get; set; }
+    }
+
+    /// <summary>
+    /// Вызов тула в историческом assistant_tool_use сообщении (T-000108):
+    /// name + input тула; isError (REQ-027) — исход выполнения, omitempty
+    /// (отсутствует у старых записей — клиент читает мягко, рисует успех).
+    /// </summary>
+    public class SessionToolCallDto
+    {
+        [JsonPropertyName("name")]
+        public string Name { get; set; } = string.Empty;
+
+        [JsonPropertyName("input")]
+        public System.Text.Json.JsonElement Input { get; set; }
+
+        [JsonPropertyName("isError")]
+        public bool? IsError { get; set; }
+    }
+
+    /// <summary>
+    /// Сообщение из GET /v1/api/sessions/{id}/messages. Присутствие опциональных
+    /// полей — по контракту /chat: отсутствие = «нет данных», не «ноль».
+    /// reasoningText в контракте истории НЕ отдаётся (в отличие от живого /chat).
+    /// </summary>
+    public class SessionMessageDto
+    {
+        [JsonPropertyName("id")]
+        public int Id { get; set; }
+
+        [JsonPropertyName("role")]
+        public string Role { get; set; } = string.Empty;
+
+        [JsonPropertyName("kind")]
+        public string Kind { get; set; } = string.Empty;
+
+        [JsonPropertyName("content")]
+        public string Content { get; set; } = string.Empty;
+
+        [JsonPropertyName("createdAt")]
+        public string CreatedAt { get; set; } = string.Empty;
+
+        // Attribution хода (v0.50.0, F-000026): requested model / фактическая модель Router.
+        [JsonPropertyName("model")]
+        public string? Model { get; set; }
+
+        [JsonPropertyName("realModel")]
+        public string? RealModel { get; set; }
+
+        [JsonPropertyName("modelDisplayName")]
+        public string? ModelDisplayName { get; set; }
+
+        [JsonPropertyName("temperature")]
+        public double? Temperature { get; set; }
+
+        [JsonPropertyName("toolCalls")]
+        public SessionToolCallDto[]? ToolCalls { get; set; }
+
+        [JsonPropertyName("promptTokens")]
+        public int? PromptTokens { get; set; }
+
+        [JsonPropertyName("completionTokens")]
+        public int? CompletionTokens { get; set; }
+
+        [JsonPropertyName("totalTokens")]
+        public int? TotalTokens { get; set; }
+
+        [JsonPropertyName("costCoins")]
+        public decimal? CostCoins { get; set; }
+
+        [JsonPropertyName("costUsd")]
+        public decimal? CostUsd { get; set; }
+
+        [JsonPropertyName("costRub")]
+        public decimal? CostRub { get; set; }
+
+        [JsonPropertyName("genMs")]
+        public long? GenMs { get; set; }
+
+        [JsonPropertyName("tokensPerSec")]
+        public double? TokensPerSec { get; set; }
+    }
+
+    /// <summary>
+    /// Ответ GET /v1/api/sessions/{id}/messages: сообщения по возрастанию id
+    /// (хронологически), для подгрузки более старых — before = id верхнего.
+    /// </summary>
+    public class SessionMessagesResponse
+    {
+        [JsonPropertyName("serviceInfo")]
+        public ServiceInfo ServiceInfo { get; set; } = new();
+
+        [JsonPropertyName("session")]
+        public SessionInfoDto? Session { get; set; }
+
+        [JsonPropertyName("messages")]
+        public SessionMessageDto[] Messages { get; set; } = Array.Empty<SessionMessageDto>();
+    }
+
     public class ApiException : Exception
     {
         public string ErrorCode { get; }
