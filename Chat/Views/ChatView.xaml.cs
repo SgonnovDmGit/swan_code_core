@@ -33,6 +33,19 @@ namespace SwanCode.Core.Chat.Views
             }
         }
 
+        // RichTextBox сообщений глотает колесо мыши даже без своих скроллбаров —
+        // пробрасываем событие родительскому ScrollViewer треда.
+        private void MessageBody_PreviewMouseWheel(object sender, MouseWheelEventArgs e)
+        {
+            if (e.Handled) return;
+            e.Handled = true;
+            ThreadScroll.RaiseEvent(new MouseWheelEventArgs(e.MouseDevice, e.Timestamp, e.Delta)
+            {
+                RoutedEvent = UIElement.MouseWheelEvent,
+                Source = sender
+            });
+        }
+
         // Enter → отправка; Shift+Enter → перенос строки (AcceptsReturn=true в XAML).
         // По memory feedback_wpf_textbox_enter — обязательно PreviewKeyDown, а не KeyDown.
         private void InputTextBox_PreviewKeyDown(object sender, KeyEventArgs e)

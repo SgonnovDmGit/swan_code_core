@@ -78,13 +78,20 @@
                     </Border>
                 </Expander>
 
-                <!-- Content -->
-                <TextBlock Text="{Binding Content}"
-                           TextWrapping="Wrap"
-                           Foreground="{DynamicResource PrimaryForeground}"
-                           FontSize="13"
-                           Margin="0,0,0,6"
-                           Visibility="{Binding Content, Converter={StaticResource EmptyToVis}, ConverterParameter=invert}"/>
+                <!-- Content: markdown-рендер, текст выделяется и копируется (T-000103).
+                     PreviewMouseWheel пробрасывается родительскому ScrollViewer в code-behind. -->
+                <RichTextBox helpers:MarkdownBehavior.Markdown="{Binding Content}"
+                             IsReadOnly="True"
+                             IsReadOnlyCaretVisible="False"
+                             IsDocumentEnabled="True"
+                             Background="Transparent"
+                             BorderThickness="0"
+                             Padding="0"
+                             Margin="0,0,0,6"
+                             VerticalScrollBarVisibility="Disabled"
+                             HorizontalScrollBarVisibility="Disabled"
+                             PreviewMouseWheel="MessageBody_PreviewMouseWheel"
+                             Visibility="{Binding Content, Converter={StaticResource EmptyToVis}, ConverterParameter=invert}"/>
 
                 <!-- Tool uses -->
                 <ItemsControl ItemsSource="{Binding ToolUses}"
