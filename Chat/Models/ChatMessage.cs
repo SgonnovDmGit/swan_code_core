@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using System.Collections.ObjectModel;
 using SwanCode.Core.Helpers;
 
 namespace SwanCode.Core.Chat.Models
@@ -74,6 +75,30 @@ namespace SwanCode.Core.Chat.Models
             get => _toolResults;
             set => SetProperty(ref _toolResults, value);
         }
+
+        /// <summary>
+        /// Карточки вызовов тулов (T-000074): живые статусы running → done/failed.
+        /// Заполняется ChatViewModelBase.AttachToolCalls из ToolUses; результаты
+        /// подтягивает DispatchToolUsesAsync по ToolUseId.
+        /// </summary>
+        public ObservableCollection<ToolCallItem> ToolCalls { get; } = new();
+
+        // === Аналитика цепочки (T-000074): агрегат по ходу контент→тул→…→контент.
+        // Ставится только на ФИНАЛЬНОЕ сообщение цепочки (без toolUses) — на нём
+        // рендерится чип «i» с двухъярусным хинтом Токены/Затраты.
+        private ChainStats? _chain;
+
+        public ChainStats? Chain
+        {
+            get => _chain;
+            set
+            {
+                if (SetProperty(ref _chain, value))
+                    OnPropertyChanged(nameof(HasChain));
+            }
+        }
+
+        public bool HasChain => _chain != null;
 
         // Reasoning (REQ-007 / REQ-008, server v0.59.0). Пустые ⟺ ход без размышлений.
         public string? ReasoningText

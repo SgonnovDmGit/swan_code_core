@@ -11,17 +11,50 @@
 
     <UserControl.Resources>
         <helpers:BoolToVisibilityConverter x:Key="BoolToVis"/>
+        <helpers:InvertBoolToVisibilityConverter x:Key="InvBoolToVis"/>
         <helpers:EmptyStringToVisibilityConverter x:Key="EmptyToVis"/>
         <helpers:CollectionToVisibilityConverter x:Key="CollToVis"/>
         <helpers:StringToVisibilityConverter x:Key="StringToVisibilityConverter"/>
         <helpers:ToolDisplayNameConverter x:Key="ToolName"/>
         <helpers:ToolInputToVisibilityConverter x:Key="ToolInputToVis"/>
 
+        <!-- Иконка-кнопка действия под сообщением (T-000074: только иконки) -->
+        <Style x:Key="MsgActionButton" TargetType="Button">
+            <Setter Property="Width" Value="28"/>
+            <Setter Property="Height" Value="24"/>
+            <Setter Property="Padding" Value="0"/>
+            <Setter Property="Background" Value="Transparent"/>
+            <Setter Property="BorderBrush" Value="{DynamicResource BorderColor}"/>
+            <Setter Property="BorderThickness" Value="1"/>
+            <Setter Property="Foreground" Value="{DynamicResource SecondaryForeground}"/>
+            <Setter Property="Cursor" Value="Hand"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border x:Name="bd" Background="{TemplateBinding Background}"
+                                BorderBrush="{TemplateBinding BorderBrush}"
+                                BorderThickness="{TemplateBinding BorderThickness}"
+                                CornerRadius="5">
+                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="bd" Property="BorderBrush" Value="{DynamicResource AccentColor}"/>
+                                <Setter Property="Foreground" Value="{DynamicResource AccentColor}"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
         <!-- ================= USER ================= -->
         <DataTemplate x:Key="UserTemplate">
             <Border HorizontalAlignment="Right"
                     MaxWidth="520"
                     Background="{DynamicResource UserBubbleBackground}"
+                    BorderBrush="{DynamicResource UserBubbleBorder}"
+                    BorderThickness="1"
                     CornerRadius="10,10,2,10"
                     Padding="12,8"
                     Margin="60,8,0,8">
@@ -34,232 +67,348 @@
 
         <!-- ================= ASSISTANT ================= -->
         <DataTemplate x:Key="AssistantTemplate">
-            <StackPanel Margin="0,10,60,10">
+            <Grid Margin="0,8,60,8">
+                <!-- ЯНТАРНЫЙ THINK-ЧИП (вариант A: пульс-точка) — пока ход в полёте -->
+                <Border x:Name="ThinkChip"
+                        HorizontalAlignment="Left"
+                        Background="{DynamicResource ReasoningBackground}"
+                        BorderBrush="{DynamicResource ReasoningBorder}"
+                        BorderThickness="1"
+                        CornerRadius="10"
+                        Padding="13,7"
+                        Visibility="{Binding IsThinking, Converter={StaticResource BoolToVis}}">
+                    <StackPanel Orientation="Horizontal">
+                        <Ellipse x:Name="PulseDot" Width="8" Height="8"
+                                 Fill="{DynamicResource ReasoningForeground}"
+                                 VerticalAlignment="Center"
+                                 RenderTransformOrigin="0.5,0.5">
+                            <Ellipse.RenderTransform>
+                                <ScaleTransform/>
+                            </Ellipse.RenderTransform>
+                            <Ellipse.Style>
+                                <Style TargetType="Ellipse">
+                                    <Style.Triggers>
+                                        <DataTrigger Binding="{Binding IsThinking}" Value="True">
+                                            <DataTrigger.EnterActions>
+                                                <BeginStoryboard x:Name="PulseSb">
+                                                    <Storyboard RepeatBehavior="Forever" AutoReverse="True">
+                                                        <DoubleAnimation Storyboard.TargetProperty="Opacity"
+                                                                         From="1" To="0.35" Duration="0:0:0.75"/>
+                                                        <DoubleAnimation Storyboard.TargetProperty="(UIElement.RenderTransform).(ScaleTransform.ScaleX)"
+                                                                         From="1" To="0.7" Duration="0:0:0.75"/>
+                                                        <DoubleAnimation Storyboard.TargetProperty="(UIElement.RenderTransform).(ScaleTransform.ScaleY)"
+                                                                         From="1" To="0.7" Duration="0:0:0.75"/>
+                                                    </Storyboard>
+                                                </BeginStoryboard>
+                                            </DataTrigger.EnterActions>
+                                            <DataTrigger.ExitActions>
+                                                <StopStoryboard BeginStoryboardName="PulseSb"/>
+                                            </DataTrigger.ExitActions>
+                                        </DataTrigger>
+                                    </Style.Triggers>
+                                </Style>
+                            </Ellipse.Style>
+                        </Ellipse>
+                        <TextBlock Text="{Binding Content}"
+                                   Margin="9,0,0,0"
+                                   FontSize="12.5"
+                                   VerticalAlignment="Center"
+                                   Foreground="{DynamicResource ReasoningForeground}"/>
+                    </StackPanel>
+                </Border>
 
-                <!-- Header: streaming/interrupted badges only (avatar-буква убрана — переработается в v0.12.0 брендовом ревью). Каждый badge сам коллапсится, StackPanel сожмётся. -->
-                <StackPanel Orientation="Horizontal" Margin="0,0,0,0">
-                    <Border Margin="0,0,0,0"
-                            Padding="6,2"
-                            CornerRadius="3"
-                            Background="{DynamicResource AccentColor}"
-                            Opacity="0.85"
-                            Visibility="{Binding IsStreaming, Converter={StaticResource BoolToVis}}">
-                        <TextBlock Text="{DynamicResource str_Chat_Streaming}"
-                                   Foreground="White"
-                                   FontSize="10"/>
+                <!-- ОБЫЧНОЕ СООБЩЕНИЕ -->
+                <StackPanel Visibility="{Binding IsThinking, Converter={StaticResource InvBoolToVis}}">
+
+                    <!-- Streaming / interrupted badges -->
+                    <StackPanel Orientation="Horizontal">
+                        <Border Padding="6,2" CornerRadius="3"
+                                Background="{DynamicResource AccentColor}"
+                                Opacity="0.85"
+                                Visibility="{Binding IsStreaming, Converter={StaticResource BoolToVis}}">
+                            <TextBlock Text="{DynamicResource str_Chat_Streaming}"
+                                       Foreground="{DynamicResource AccentOnFill}" FontSize="10"/>
+                        </Border>
+                        <Border Margin="8,0,0,0" Padding="6,2" CornerRadius="3"
+                                Background="{DynamicResource ErrorBackground}"
+                                Visibility="{Binding IsInterrupted, Converter={StaticResource BoolToVis}}">
+                            <TextBlock Text="{DynamicResource str_Chat_Interrupted}"
+                                       Foreground="{DynamicResource ErrorColor}" FontSize="10"/>
+                        </Border>
+                    </StackPanel>
+
+                    <!-- Рассуждение: янтарный блок с левой полосой (T-000074) -->
+                    <Border BorderBrush="{DynamicResource ReasoningBorder}"
+                            BorderThickness="3,0,0,0"
+                            Background="{DynamicResource ReasoningBackground}"
+                            CornerRadius="0,8,8,0"
+                            Padding="12,7"
+                            Margin="0,0,0,6"
+                            Visibility="{Binding HasReasoning, Converter={StaticResource BoolToVis}}">
+                        <Expander IsExpanded="False">
+                            <Expander.Header>
+                                <TextBlock Text="{DynamicResource str_Chat_Reasoning}"
+                                           FontSize="11"
+                                           Foreground="{DynamicResource ReasoningForeground}"/>
+                            </Expander.Header>
+                            <TextBlock Text="{Binding ReasoningText}"
+                                       TextWrapping="Wrap"
+                                       Margin="0,6,0,0"
+                                       Foreground="{DynamicResource ReasoningForeground}"
+                                       FontSize="12"
+                                       LineHeight="18"/>
+                        </Expander>
                     </Border>
-                    <Border Margin="8,0,0,0"
-                            Padding="6,2"
-                            CornerRadius="3"
-                            Background="#8B3A3A"
-                            Visibility="{Binding IsInterrupted, Converter={StaticResource BoolToVis}}">
-                        <TextBlock Text="{DynamicResource str_Chat_Interrupted}"
-                                   Foreground="White"
-                                   FontSize="10"/>
-                    </Border>
-                </StackPanel>
 
-                <!-- Reasoning expander -->
-                <Expander Margin="0,0,0,6"
-                          IsExpanded="False"
-                          Visibility="{Binding HasReasoning, Converter={StaticResource BoolToVis}}">
-                    <Expander.Header>
-                        <TextBlock Text="{DynamicResource str_Chat_Reasoning}"
-                                   FontSize="11"
-                                   Foreground="{DynamicResource SecondaryForeground}"/>
-                    </Expander.Header>
-                    <Border Background="{DynamicResource SecondaryBackground}"
-                            CornerRadius="4"
-                            Padding="10,8"
-                            Margin="4,4,0,0">
-                        <TextBlock Text="{Binding ReasoningText}"
-                                   TextWrapping="Wrap"
-                                   Foreground="{DynamicResource PrimaryForeground}"
-                                   FontSize="12"
-                                   LineHeight="18"/>
-                    </Border>
-                </Expander>
+                    <!-- Content: markdown-рендер (T-000103) -->
+                    <RichTextBox helpers:MarkdownBehavior.Markdown="{Binding Content}"
+                                 IsReadOnly="True"
+                                 IsReadOnlyCaretVisible="False"
+                                 IsDocumentEnabled="True"
+                                 Background="Transparent"
+                                 BorderThickness="0"
+                                 Padding="0"
+                                 Margin="0,0,0,6"
+                                 VerticalScrollBarVisibility="Disabled"
+                                 HorizontalScrollBarVisibility="Disabled"
+                                 PreviewMouseWheel="MessageBody_PreviewMouseWheel"
+                                 Visibility="{Binding Content, Converter={StaticResource EmptyToVis}, ConverterParameter=invert}"/>
 
-                <!-- Content: markdown-рендер, текст выделяется и копируется (T-000103).
-                     PreviewMouseWheel пробрасывается родительскому ScrollViewer в code-behind. -->
-                <RichTextBox helpers:MarkdownBehavior.Markdown="{Binding Content}"
-                             IsReadOnly="True"
-                             IsReadOnlyCaretVisible="False"
-                             IsDocumentEnabled="True"
-                             Background="Transparent"
-                             BorderThickness="0"
-                             Padding="0"
-                             Margin="0,0,0,6"
-                             VerticalScrollBarVisibility="Disabled"
-                             HorizontalScrollBarVisibility="Disabled"
-                             PreviewMouseWheel="MessageBody_PreviewMouseWheel"
-                             Visibility="{Binding Content, Converter={StaticResource EmptyToVis}, ConverterParameter=invert}"/>
+                    <!-- Карточки тулов: running / done / failed (T-000074, DLemma) -->
+                    <!-- Без Visibility-байндинга: коллекция наполняется ПОСЛЕ добавления
+                         сообщения (реюз thinking-bubble), CollToVis не пере-евалится.
+                         Пустой ItemsControl не рендерит ничего. -->
+                    <ItemsControl ItemsSource="{Binding ToolCalls}">
+                        <ItemsControl.ItemTemplate>
+                            <DataTemplate>
+                                <Border CornerRadius="0,8,8,0"
+                                        Padding="12,8"
+                                        Margin="0,3">
+                                    <Border.Style>
+                                        <Style TargetType="Border">
+                                            <Setter Property="Background" Value="{DynamicResource ToolCardBackground}"/>
+                                            <Setter Property="BorderBrush" Value="{DynamicResource AccentColor}"/>
+                                            <Setter Property="BorderThickness" Value="3,0,0,0"/>
+                                            <Style.Triggers>
+                                                <DataTrigger Binding="{Binding IsDone}" Value="True">
+                                                    <Setter Property="BorderBrush" Value="{DynamicResource SuccessColor}"/>
+                                                </DataTrigger>
+                                                <DataTrigger Binding="{Binding IsFailed}" Value="True">
+                                                    <Setter Property="BorderBrush" Value="{DynamicResource ErrorColor}"/>
+                                                    <Setter Property="Background" Value="{DynamicResource ErrorBackground}"/>
+                                                </DataTrigger>
+                                            </Style.Triggers>
+                                        </Style>
+                                    </Border.Style>
+                                    <StackPanel>
+                                        <DockPanel>
+                                            <!-- Статус-иконка -->
+                                            <Grid DockPanel.Dock="Left" Width="14" Height="14" Margin="0,0,9,0"
+                                                  VerticalAlignment="Center">
+                                                <!-- running: спиннер-дуга -->
+                                                <Path Stroke="{DynamicResource AccentColor}"
+                                                      StrokeThickness="2"
+                                                      StrokeStartLineCap="Round" StrokeEndLineCap="Round"
+                                                      Data="M 12 7 A 5 5 0 1 1 7 2"
+                                                      RenderTransformOrigin="0.5,0.5"
+                                                      Visibility="{Binding IsRunning, Converter={StaticResource BoolToVis}}">
+                                                    <Path.RenderTransform>
+                                                        <RotateTransform/>
+                                                    </Path.RenderTransform>
+                                                    <Path.Style>
+                                                        <Style TargetType="Path">
+                                                            <Style.Triggers>
+                                                                <DataTrigger Binding="{Binding IsRunning}" Value="True">
+                                                                    <DataTrigger.EnterActions>
+                                                                        <BeginStoryboard x:Name="SpinSb">
+                                                                            <Storyboard RepeatBehavior="Forever">
+                                                                                <DoubleAnimation Storyboard.TargetProperty="(UIElement.RenderTransform).(RotateTransform.Angle)"
+                                                                                                 From="0" To="360" Duration="0:0:0.8"/>
+                                                                            </Storyboard>
+                                                                        </BeginStoryboard>
+                                                                    </DataTrigger.EnterActions>
+                                                                    <DataTrigger.ExitActions>
+                                                                        <StopStoryboard BeginStoryboardName="SpinSb"/>
+                                                                    </DataTrigger.ExitActions>
+                                                                </DataTrigger>
+                                                            </Style.Triggers>
+                                                        </Style>
+                                                    </Path.Style>
+                                                </Path>
+                                                <!-- done: ✓ -->
+                                                <TextBlock Text="✓" FontSize="12" FontWeight="Bold"
+                                                           HorizontalAlignment="Center" VerticalAlignment="Center"
+                                                           Foreground="{DynamicResource SuccessColor}"
+                                                           Visibility="{Binding IsDone, Converter={StaticResource BoolToVis}}"/>
+                                                <!-- failed: ✕ -->
+                                                <TextBlock Text="✕" FontSize="12" FontWeight="Bold"
+                                                           HorizontalAlignment="Center" VerticalAlignment="Center"
+                                                           Foreground="{DynamicResource ErrorColor}"
+                                                           Visibility="{Binding IsFailed, Converter={StaticResource BoolToVis}}"/>
+                                            </Grid>
 
-                <!-- Tool uses -->
-                <ItemsControl ItemsSource="{Binding ToolUses}"
-                              Margin="0,0,0,6"
-                              Visibility="{Binding ToolUses, Converter={StaticResource CollToVis}}">
-                    <ItemsControl.ItemTemplate>
-                        <DataTemplate>
-                            <!-- Карточка тула: заметный фон + акцентная полоска, чтобы вызов
-                                 не сливался с фоном треда. Пустой инпут ({}) не показывается. -->
-                            <Border Background="{DynamicResource SecondaryBackground}"
-                                    BorderBrush="{DynamicResource AccentColor}"
-                                    BorderThickness="2,0,0,0"
-                                    CornerRadius="0,4,4,0"
-                                    Padding="10,6"
-                                    Margin="0,3">
-                                <Expander>
-                                    <Expander.Header>
-                                        <StackPanel Orientation="Horizontal">
-                                            <TextBlock Text="🔧 "
-                                                       Foreground="{DynamicResource SecondaryForeground}"
-                                                       FontSize="12"/>
+                                            <!-- Шеврон-разворачивалка входа (только шеврон, без слова) -->
+                                            <ToggleButton x:Name="InputChevron" DockPanel.Dock="Right"
+                                                          Background="Transparent" BorderThickness="0"
+                                                          Cursor="Hand" Padding="4,0"
+                                                          VerticalAlignment="Center"
+                                                          Visibility="{Binding Input, Converter={StaticResource ToolInputToVis}}">
+                                                <ToggleButton.Template>
+                                                    <ControlTemplate TargetType="ToggleButton">
+                                                        <Border Background="Transparent" Padding="4,2">
+                                                            <TextBlock x:Name="chev" Text="▸" FontSize="10"
+                                                                       Foreground="{DynamicResource SecondaryForeground}"/>
+                                                        </Border>
+                                                        <ControlTemplate.Triggers>
+                                                            <Trigger Property="IsChecked" Value="True">
+                                                                <Setter TargetName="chev" Property="Text" Value="▾"/>
+                                                            </Trigger>
+                                                        </ControlTemplate.Triggers>
+                                                    </ControlTemplate>
+                                                </ToggleButton.Template>
+                                            </ToggleButton>
+
+                                            <!-- Локализованное имя; техимя — в ToolTip -->
                                             <TextBlock Text="{Binding Name, Converter={StaticResource ToolName}}"
-                                                       FontSize="12"
-                                                       FontWeight="SemiBold"
-                                                       Foreground="{DynamicResource AccentColor}"/>
-                                            <TextBlock Text=" · "
-                                                       Foreground="{DynamicResource SecondaryForeground}"
-                                                       FontSize="12"
-                                                       Visibility="{Binding Input, Converter={StaticResource ToolInputToVis}}"/>
-                                            <TextBlock Text="{Binding Input}"
-                                                       FontFamily="Consolas"
-                                                       FontSize="11"
-                                                       MaxWidth="440"
+                                                       ToolTip="{Binding Name}"
+                                                       FontSize="12.5" FontWeight="SemiBold"
+                                                       VerticalAlignment="Center"
                                                        TextTrimming="CharacterEllipsis"
-                                                       Foreground="{DynamicResource SecondaryForeground}"
-                                                       Visibility="{Binding Input, Converter={StaticResource ToolInputToVis}}"/>
-                                        </StackPanel>
-                                    </Expander.Header>
-                                    <Border Background="{DynamicResource TertiaryBackground}"
-                                            CornerRadius="4"
-                                            Padding="10,8"
-                                            Margin="20,4,0,0"
-                                            Visibility="{Binding Input, Converter={StaticResource ToolInputToVis}}">
-                                        <TextBlock Text="{Binding Input}"
-                                                   FontFamily="Consolas"
-                                                   FontSize="11"
-                                                   TextWrapping="Wrap"
-                                                   Foreground="{DynamicResource PrimaryForeground}"/>
-                                    </Border>
-                                </Expander>
-                            </Border>
-                        </DataTemplate>
-                    </ItemsControl.ItemTemplate>
-                </ItemsControl>
+                                                       Foreground="{DynamicResource PrimaryForeground}"/>
+                                        </DockPanel>
 
-                <!-- Tool results -->
-                <ItemsControl ItemsSource="{Binding ToolResults}"
-                              Margin="0,0,0,6"
-                              Visibility="{Binding ToolResults, Converter={StaticResource CollToVis}}">
-                    <ItemsControl.ItemTemplate>
-                        <DataTemplate>
-                            <Border Background="{DynamicResource SecondaryBackground}"
-                                    BorderBrush="{DynamicResource BorderColor}"
-                                    BorderThickness="2,0,0,0"
-                                    CornerRadius="0,4,4,0"
-                                    Padding="10,4"
-                                    Margin="0,2">
-                                <StackPanel Orientation="Horizontal">
-                                    <TextBlock Text="↳ "
-                                               Foreground="{DynamicResource SecondaryForeground}"
-                                               FontSize="12"/>
-                                    <TextBlock Text="{Binding Name, Converter={StaticResource ToolName}}"
-                                               FontSize="11"
-                                               Foreground="{DynamicResource AccentColor}"/>
-                                    <TextBlock Text=" · "
-                                               Foreground="{DynamicResource SecondaryForeground}"
-                                               FontSize="11"/>
-                                    <TextBlock Text="{Binding Status}"
-                                               FontFamily="Consolas"
-                                               FontSize="11"
-                                               Foreground="{DynamicResource SecondaryForeground}"/>
-                                    <TextBlock Text=" · "
-                                               Foreground="{DynamicResource SecondaryForeground}"
-                                               FontSize="11"
-                                               Visibility="{Binding Message, Converter={StaticResource StringToVisibilityConverter}}"/>
-                                    <TextBlock Text="{Binding Message}"
-                                               FontSize="11"
-                                               Foreground="{DynamicResource SecondaryForeground}"/>
-                                </StackPanel>
-                            </Border>
-                        </DataTemplate>
-                    </ItemsControl.ItemTemplate>
-                </ItemsControl>
+                                        <!-- JSON-вход (по шеврону) -->
+                                        <Border Background="{DynamicResource CodeBackground}"
+                                                BorderBrush="{DynamicResource CodeBorder}"
+                                                BorderThickness="1"
+                                                CornerRadius="5"
+                                                Padding="9,6"
+                                                Margin="0,7,0,0"
+                                                Visibility="{Binding IsChecked, ElementName=InputChevron, Converter={StaticResource BoolToVis}}">
+                                            <TextBlock Text="{Binding Input}"
+                                                       FontFamily="Consolas" FontSize="11"
+                                                       TextWrapping="Wrap"
+                                                       Foreground="{DynamicResource SecondaryForeground}"/>
+                                        </Border>
 
-                <!-- Actions row: только у сообщений с текстом — на tool-раундах
-                     с пустым Content кнопкам нечего копировать/цитировать -->
-                <StackPanel Orientation="Horizontal"
-                            HorizontalAlignment="Right"
-                            Margin="0,4,0,0"
-                            Visibility="{Binding Content, Converter={StaticResource EmptyToVis}, ConverterParameter=invert}">
-                    <Button Content="⧉"
-                            ToolTip="{DynamicResource str_Chat_ActionCopy}"
-                            Click="CopyMessage_Click"
-                            Padding="6,3" Margin="0,0,2,0" FontSize="11"/>
-                    <Button Content="❝"
-                            ToolTip="{DynamicResource str_Chat_ActionQuote}"
-                            Click="QuoteMessage_Click"
-                            Padding="6,3" Margin="0,0,2,0" FontSize="11"/>
-                    <Button Content="↻"
-                            ToolTip="{DynamicResource str_Chat_ActionRetry}"
-                            Click="RetryMessage_Click"
-                            Padding="6,3" Margin="0,0,2,0" FontSize="11"/>
-                    <Button Content="ⓘ"
-                            ToolTip="{DynamicResource str_Chat_ActionInfo}"
-                            Click="InfoMessage_Click"
-                            Padding="6,3" FontSize="11"
-                            Foreground="{DynamicResource AccentColor}">
-                        <Button.ContextMenu>
-                            <ContextMenu>
-                                <MenuItem Header="{DynamicResource str_Chat_InfoTitle}" IsEnabled="False"/>
-                                <Separator/>
-                                <MenuItem Header="{Binding ModelName, StringFormat={}model: {0}}"/>
-                                <MenuItem Header="{Binding ProviderName, StringFormat={}provider: {0}}"
-                                          Visibility="{Binding ProviderName, Converter={StaticResource StringToVisibilityConverter}}"/>
-                                <MenuItem Header="{Binding ReasoningEffort, StringFormat={}effort: {0}}"
-                                          Visibility="{Binding ReasoningEffort, Converter={StaticResource StringToVisibilityConverter}}"/>
-                                <Separator/>
-                                <MenuItem Header="{Binding PromptTokens, StringFormat={}prompt: {0}}"/>
-                                <MenuItem Header="{Binding CompletionTokens, StringFormat={}completion: {0}}"/>
-                                <MenuItem Header="{Binding TotalTokens, StringFormat={}total: {0}}"/>
-                                <Separator Visibility="{Binding HasBilling, Converter={StaticResource BoolToVis}}"/>
-                                <MenuItem Header="{Binding CostCoins, StringFormat={}coins: {0:F2}}"
-                                          Visibility="{Binding HasBilling, Converter={StaticResource BoolToVis}}"/>
-                                <MenuItem Header="{Binding CostRub, StringFormat={}rub: {0:F2}}"
-                                          Visibility="{Binding CostRub, Converter={StaticResource BoolToVis}}"/>
-                            </ContextMenu>
-                        </Button.ContextMenu>
-                    </Button>
+                                        <!-- Итог тула: обычный — серым, ошибка — красным -->
+                                        <TextBlock Text="{Binding ResultMessage}"
+                                                   FontSize="12" TextWrapping="Wrap"
+                                                   Margin="0,6,0,0">
+                                            <TextBlock.Style>
+                                                <Style TargetType="TextBlock">
+                                                    <Setter Property="Foreground" Value="{DynamicResource SecondaryForeground}"/>
+                                                    <Setter Property="Visibility" Value="Visible"/>
+                                                    <Style.Triggers>
+                                                        <DataTrigger Binding="{Binding HasResultMessage}" Value="False">
+                                                            <Setter Property="Visibility" Value="Collapsed"/>
+                                                        </DataTrigger>
+                                                        <DataTrigger Binding="{Binding IsFailed}" Value="True">
+                                                            <Setter Property="Foreground" Value="{DynamicResource ErrorColor}"/>
+                                                        </DataTrigger>
+                                                    </Style.Triggers>
+                                                </Style>
+                                            </TextBlock.Style>
+                                        </TextBlock>
+                                    </StackPanel>
+                                </Border>
+                            </DataTemplate>
+                        </ItemsControl.ItemTemplate>
+                    </ItemsControl>
+
+                    <!-- Кнопки-иконки: Копировать (⇉ ✓-фидбек) и Цитата -->
+                    <StackPanel Orientation="Horizontal"
+                                HorizontalAlignment="Right"
+                                Margin="0,4,0,0"
+                                Visibility="{Binding Content, Converter={StaticResource EmptyToVis}, ConverterParameter=invert}">
+                        <Button Style="{StaticResource MsgActionButton}"
+                                ToolTip="{DynamicResource str_Chat_ActionCopy}"
+                                Click="CopyMessage_Click"
+                                Margin="0,0,4,0">
+                            <Path Width="13" Height="13" Stretch="Uniform"
+                                  Fill="{Binding Foreground, RelativeSource={RelativeSource AncestorType=Button}}"
+                                  Data="M8 3h11a1 1 0 0 1 1 1v13h-2V5H8V3zM4 7h11a1 1 0 0 1 1 1v12a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V8a1 1 0 0 1 1-1zm1 2v10h9V9H5z"/>
+                        </Button>
+                        <Button Style="{StaticResource MsgActionButton}"
+                                ToolTip="{DynamicResource str_Chat_ActionQuote}"
+                                Click="QuoteMessage_Click">
+                            <Path Width="13" Height="13" Stretch="Uniform"
+                                  Fill="{Binding Foreground, RelativeSource={RelativeSource AncestorType=Button}}"
+                                  Data="M6.5 5C4 5 2 7.2 2 10c0 2.5 1.7 4.4 4 4.4-.3 1.9-1.5 3.3-3.4 4.1l.9 1.5c3.6-1.2 5.9-4.1 5.9-8C9.4 8 8.3 5 6.5 5zm11 0C15 5 13 7.2 13 10c0 2.5 1.7 4.4 4 4.4-.3 1.9-1.5 3.3-3.4 4.1l.9 1.5c3.6-1.2 5.9-4.1 5.9-8C20.4 8 19.3 5 17.5 5z"/>
+                        </Button>
+                    </StackPanel>
+
+                    <!-- Чип аналитики цепочки: DisplayName модели + «i» с 2-ярусным хинтом -->
+                    <StackPanel Orientation="Horizontal"
+                                HorizontalAlignment="Right"
+                                Margin="0,6,0,0"
+                                Visibility="{Binding HasChain, Converter={StaticResource BoolToVis}}">
+                        <TextBlock Text="{Binding ModelName}"
+                                   FontSize="11"
+                                   VerticalAlignment="Center"
+                                   Margin="0,0,8,0"
+                                   Foreground="{DynamicResource SecondaryForeground}"/>
+                        <Border Width="22" Height="22" CornerRadius="11"
+                                Background="{DynamicResource SecondaryBackground}"
+                                BorderBrush="{DynamicResource BorderColor}"
+                                BorderThickness="1"
+                                ToolTipService.InitialShowDelay="150"
+                                ToolTipService.ShowDuration="60000">
+                            <TextBlock Text="i" FontFamily="Georgia" FontStyle="Italic" FontWeight="SemiBold"
+                                       FontSize="12" HorizontalAlignment="Center" VerticalAlignment="Center"
+                                       Foreground="{DynamicResource SecondaryForeground}"/>
+                            <Border.ToolTip>
+                                <ToolTip Background="{DynamicResource PopupBackground}"
+                                         BorderBrush="{DynamicResource PopupBorder}"
+                                         Foreground="{DynamicResource PrimaryForeground}"
+                                         Padding="0">
+                                    <StackPanel MinWidth="210" Margin="0,6">
+                                        <TextBlock Text="{DynamicResource str_ChainTokens}"
+                                                   FontSize="10.5" FontWeight="SemiBold" Margin="13,2,13,4"
+                                                   Foreground="{DynamicResource AccentColor}"/>
+                                        <Separator Margin="0,0,0,3"/>
+                                        <DockPanel Margin="13,2"><TextBlock Text="{DynamicResource str_ChainPrompt}" Foreground="{DynamicResource SecondaryForeground}" FontSize="12"/><TextBlock DockPanel.Dock="Right" HorizontalAlignment="Right" Text="{Binding Chain.PromptTokens, StringFormat={}{0:N0}}" FontSize="12"/></DockPanel>
+                                        <DockPanel Margin="13,2"><TextBlock Text="{DynamicResource str_ChainCompletion}" Foreground="{DynamicResource SecondaryForeground}" FontSize="12"/><TextBlock DockPanel.Dock="Right" HorizontalAlignment="Right" Text="{Binding Chain.CompletionTokens, StringFormat={}{0:N0}}" FontSize="12"/></DockPanel>
+                                        <DockPanel Margin="13,2"><TextBlock Text="{DynamicResource str_ChainTotal}" Foreground="{DynamicResource SecondaryForeground}" FontSize="12"/><TextBlock DockPanel.Dock="Right" HorizontalAlignment="Right" Text="{Binding Chain.TotalTokens, StringFormat={}{0:N0}}" FontSize="12"/></DockPanel>
+                                        <DockPanel Margin="13,2"><TextBlock Text="{DynamicResource str_ChainSpeed}" Foreground="{DynamicResource SecondaryForeground}" FontSize="12"/><TextBlock DockPanel.Dock="Right" HorizontalAlignment="Right" Text="{Binding Chain.SpeedDisplay}" FontSize="12"/></DockPanel>
+                                        <TextBlock Text="{DynamicResource str_ChainCost}"
+                                                   FontSize="10.5" FontWeight="SemiBold" Margin="13,8,13,4"
+                                                   Foreground="{DynamicResource AccentColor}"/>
+                                        <Separator Margin="0,0,0,3"/>
+                                        <DockPanel Margin="13,2" Visibility="{Binding Chain.HasCoins, Converter={StaticResource BoolToVis}}"><TextBlock Text="{DynamicResource str_ChainCoins}" Foreground="{DynamicResource SecondaryForeground}" FontSize="12"/><TextBlock DockPanel.Dock="Right" HorizontalAlignment="Right" Text="{Binding Chain.CoinsDisplay}" FontSize="12"/></DockPanel>
+                                        <DockPanel Margin="13,2"><TextBlock Text="{DynamicResource str_ChainWallTime}" Foreground="{DynamicResource SecondaryForeground}" FontSize="12"/><TextBlock DockPanel.Dock="Right" HorizontalAlignment="Right" Text="{Binding Chain.WallDisplay}" FontSize="12"/></DockPanel>
+                                    </StackPanel>
+                                </ToolTip>
+                            </Border.ToolTip>
+                        </Border>
+                    </StackPanel>
                 </StackPanel>
-            </StackPanel>
+            </Grid>
         </DataTemplate>
 
         <!-- ================= TOOL USE (standalone) ================= -->
         <DataTemplate x:Key="ToolUseTemplate">
             <Border BorderBrush="{DynamicResource AccentColor}"
-                    BorderThickness="2,0,0,0"
-                    Background="{DynamicResource SecondaryBackground}"
-                    Padding="10,6"
+                    BorderThickness="3,0,0,0"
+                    Background="{DynamicResource ToolCardBackground}"
+                    CornerRadius="0,8,8,0"
+                    Padding="12,7"
                     Margin="24,4,60,4">
-                <StackPanel Orientation="Horizontal">
-                    <TextBlock Text="🔧 "
-                               Foreground="{DynamicResource SecondaryForeground}"/>
-                    <TextBlock Text="{Binding Content}"
-                               FontFamily="Consolas"
-                               FontSize="12"
-                               Foreground="{DynamicResource AccentColor}"/>
-                </StackPanel>
+                <TextBlock Text="{Binding Content}"
+                           FontFamily="Consolas"
+                           FontSize="12"
+                           TextWrapping="Wrap"
+                           Foreground="{DynamicResource PrimaryForeground}"/>
             </Border>
         </DataTemplate>
 
         <!-- ================= TOOL RESULT (standalone) ================= -->
         <DataTemplate x:Key="ToolResultTemplate">
-            <Border BorderBrush="{DynamicResource BorderColor}"
-                    BorderThickness="2,0,0,0"
-                    Background="{DynamicResource SecondaryBackground}"
-                    Padding="10,6"
+            <Border BorderBrush="{DynamicResource ToolCardBorder}"
+                    BorderThickness="3,0,0,0"
+                    Background="{DynamicResource ToolCardBackground}"
+                    CornerRadius="0,8,8,0"
+                    Padding="12,7"
                     Margin="24,4,60,4">
                 <TextBlock Text="{Binding Content}"
                            FontFamily="Consolas"
@@ -294,15 +443,9 @@
                                         DebugTemplate="{StaticResource DebugTemplate}"/>
     </UserControl.Resources>
 
+    <!-- Композер вынесен в ChatInputBar (T-000074): ChatView = только лента -->
     <Grid>
-        <Grid.RowDefinitions>
-            <RowDefinition Height="*"/>
-            <RowDefinition Height="Auto"/>
-        </Grid.RowDefinitions>
-
-        <!-- Messages thread -->
-        <ScrollViewer Grid.Row="0"
-                      x:Name="ThreadScroll"
+        <ScrollViewer x:Name="ThreadScroll"
                       VerticalScrollBarVisibility="Auto"
                       HorizontalScrollBarVisibility="Disabled"
                       Padding="16,12,16,0">
@@ -310,43 +453,50 @@
                           ItemTemplateSelector="{StaticResource MessageSelector}"/>
         </ScrollViewer>
 
-        <!-- Composer -->
-        <Border Grid.Row="1"
-                Background="{DynamicResource SecondaryBackground}"
-                BorderBrush="{DynamicResource BorderColor}"
-                BorderThickness="0,1,0,0"
-                Padding="16,10">
-            <Grid>
-                <Grid.ColumnDefinitions>
-                    <ColumnDefinition Width="*"/>
-                    <ColumnDefinition Width="Auto"/>
-                </Grid.ColumnDefinitions>
-
-                <Grid Grid.Column="0" Margin="0,0,10,0">
-                    <TextBox x:Name="InputTextBox"
-                             Text="{Binding InputText, UpdateSourceTrigger=PropertyChanged}"
-                             AcceptsReturn="True"
-                             TextWrapping="Wrap"
-                             MinHeight="36"
-                             MaxHeight="120"
-                             VerticalScrollBarVisibility="Auto"
-                             PreviewKeyDown="InputTextBox_PreviewKeyDown"/>
-                    <TextBlock IsHitTestVisible="False"
-                               Text="{DynamicResource str_Chat_InputPlaceholder}"
-                               Foreground="{DynamicResource SecondaryForeground}"
-                               Margin="8,7,0,0"
-                               VerticalAlignment="Top"
-                               Visibility="{Binding Text, ElementName=InputTextBox, Converter={StaticResource EmptyToVis}}"/>
-                </Grid>
-
-                <Button Grid.Column="1"
-                        Content="{DynamicResource str_Chat_SendButton}"
-                        Command="{Binding SendMessageCommand}"
-                        Padding="16,6"
-                        Background="{DynamicResource AccentColor}"
-                        Foreground="White"
-                        VerticalAlignment="Bottom"/>
+        <!-- Welcome-экран первого запуска (T-000074): виден пока нет сообщений -->
+        <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center"
+                    MaxWidth="420" IsHitTestVisible="False">
+            <StackPanel.Style>
+                <Style TargetType="StackPanel">
+                    <Setter Property="Visibility" Value="Collapsed"/>
+                    <Style.Triggers>
+                        <DataTrigger Binding="{Binding Messages.Count}" Value="0">
+                            <Setter Property="Visibility" Value="Visible"/>
+                        </DataTrigger>
+                    </Style.Triggers>
+                </Style>
+            </StackPanel.Style>
+            <!-- Брендовый знак: мятное кольцо с точкой (перекликается с кружком контекста) -->
+            <Grid Width="56" Height="56" Margin="0,0,0,18" HorizontalAlignment="Center">
+                <Ellipse Stroke="{DynamicResource AccentColor}" StrokeThickness="4" Opacity="0.9"/>
+                <Ellipse Width="12" Height="12" Fill="{DynamicResource AccentColor}"
+                         HorizontalAlignment="Center" VerticalAlignment="Center"/>
             </Grid>
-        </Border>
+            <TextBlock Text="{DynamicResource str_Welcome_Title}"
+                       FontSize="19" FontWeight="SemiBold"
+                       HorizontalAlignment="Center" TextAlignment="Center"
+                       Foreground="{DynamicResource PrimaryForeground}"/>
+            <TextBlock Text="{DynamicResource str_Welcome_Sub}"
+                       FontSize="12.5" Margin="0,8,0,16" LineHeight="19"
+                       HorizontalAlignment="Center" TextAlignment="Center" TextWrapping="Wrap"
+                       Foreground="{DynamicResource SecondaryForeground}"/>
+            <StackPanel HorizontalAlignment="Center">
+                <StackPanel Orientation="Horizontal" Margin="0,3">
+                    <TextBlock Text="•" Foreground="{DynamicResource AccentColor}" FontWeight="Bold" Margin="0,0,8,0"/>
+                    <TextBlock Text="{DynamicResource str_Welcome_Hint1}" FontSize="12" TextWrapping="Wrap"
+                               Foreground="{DynamicResource SecondaryForeground}"/>
+                </StackPanel>
+                <StackPanel Orientation="Horizontal" Margin="0,3">
+                    <TextBlock Text="•" Foreground="{DynamicResource AccentColor}" FontWeight="Bold" Margin="0,0,8,0"/>
+                    <TextBlock Text="{DynamicResource str_Welcome_Hint2}" FontSize="12" TextWrapping="Wrap"
+                               Foreground="{DynamicResource SecondaryForeground}"/>
+                </StackPanel>
+                <StackPanel Orientation="Horizontal" Margin="0,3">
+                    <TextBlock Text="•" Foreground="{DynamicResource AccentColor}" FontWeight="Bold" Margin="0,0,8,0"/>
+                    <TextBlock Text="{DynamicResource str_Welcome_Hint3}" FontSize="12" TextWrapping="Wrap"
+                               Foreground="{DynamicResource SecondaryForeground}"/>
+                </StackPanel>
+            </StackPanel>
+        </StackPanel>
     </Grid>
 </UserControl>

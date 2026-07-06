@@ -31,6 +31,72 @@ namespace SwanCode.Core.Chat.ViewModels
         // используется InterruptCommand для отмены submit+poll (ANNOUNCE-007).
         private CancellationTokenSource? _currentSendCts;
 
+        // === Аналитика цепочки (T-000074) ==================================
+        // Ход = user-запрос → (контент+тулы → tool-results → …) → финальный контент.
+        // Старт в SendMessageAsync, накопление в ChainAccumulate, финал ставит
+        // ChainStats на последнее сообщение (там рендерится чип «i»).
+        private DateTime _chainStartUtc;
+        private int _chainPromptTokens;
+        private int _chainCompletionTokens;
+        private decimal? _chainCoins;
+
+        /// <summary>Сброс агрегата цепочки — начало нового хода.</summary>
+        protected void ChainStart()
+        {
+            _chainStartUtc = DateTime.UtcNow;
+            _chainPromptTokens = 0;
+            _chainCompletionTokens = 0;
+            _chainCoins = null;
+        }
+
+        /// <summary>
+        /// Накопить раунд цепочки; если это финальный раунд (нет toolUses) —
+        /// проставить msg.Chain для чипа аналитики. Зовётся из Handle*ResponseAsync
+        /// базы И из продуктовых override'ов (AiViewModel ведёт свой pipeline).
+        /// </summary>
+        protected void ChainAccumulate(ChatMessage msg, bool isFinal)
+        {
+            _chainPromptTokens += msg.PromptTokens;
+            _chainCompletionTokens += msg.CompletionTokens;
+            if (msg.CostCoins.HasValue)
+                _chainCoins = (_chainCoins ?? 0m) + msg.CostCoins.Value;
+
+            if (!isFinal) return;
+
+            msg.Chain = new ChainStats
+            {
+                PromptTokens = _chainPromptTokens,
+                CompletionTokens = _chainCompletionTokens,
+                CostCoins = _chainCoins,
+                WallSeconds = (DateTime.UtcNow - _chainStartUtc).TotalSeconds
+            };
+        }
+
+        /// <summary>
+        /// Наполнить msg.ToolCalls карточками из toolUses (статус running).
+        /// DispatchToolUsesAsync найдёт их по ToolUseId и переведёт в done/failed.
+        /// </summary>
+        protected void AttachToolCalls(ChatMessage msg)
+        {
+            if (msg.ToolUses is not { Count: > 0 }) return;
+            msg.ToolCalls.Clear();
+            foreach (var tu in msg.ToolUses)
+            {
+                msg.ToolCalls.Add(new ToolCallItem
+                {
+                    ToolUseId = tu.Id,
+                    Name = tu.Name,
+                    Input = tu.Input.ValueKind == System.Text.Json.JsonValueKind.Undefined
+                        ? string.Empty
+                        : tu.Input.ToString()
+                });
+            }
+            _activeToolCallsMessage = msg;
+        }
+
+        // Сообщение, чьи ToolCalls сейчас исполняются — DispatchToolUsesAsync обновляет статусы.
+        private ChatMessage? _activeToolCallsMessage;
+
         public ObservableCollection<ChatMessage> Messages { get; } = new();
 
         public string InputText
@@ -115,6 +181,7 @@ namespace SwanCode.Core.Chat.ViewModels
             var results = new List<ToolResultItem>(toolUses.Count);
             foreach (var toolUse in toolUses)
             {
+                var call = FindToolCall(toolUse.Id);
                 ToolResultItem result;
                 if (_toolHandlers.TryGetValue(toolUse.Name, out var handler))
                 {
@@ -146,9 +213,27 @@ namespace SwanCode.Core.Chat.ViewModels
                     };
                 }
                 results.Add(result);
+
+                // Живой статус карточки тула (T-000074)
+                if (call != null)
+                {
+                    call.Status = result.Status == Models.ToolResultStatus.Failure
+                        ? ToolCallItem.StatusFailed
+                        : ToolCallItem.StatusDone;
+                    call.ResultMessage = result.Message;
+                }
             }
 
             await PostToolResultsAsync(results);
+        }
+
+        private ToolCallItem? FindToolCall(string toolUseId)
+        {
+            var msg = _activeToolCallsMessage;
+            if (msg == null) return null;
+            foreach (var c in msg.ToolCalls)
+                if (c.ToolUseId == toolUseId) return c;
+            return null;
         }
 
         /// <summary>
@@ -217,6 +302,8 @@ namespace SwanCode.Core.Chat.ViewModels
                 toolUses: retry.ToolUses,
                 hasLegacyCodeChanges: retry.CodeChanges is { Length: > 0 });
             Messages.Add(msg);
+            AttachToolCalls(msg);
+            ChainAccumulate(msg, isFinal: retry.ToolUses is not { Length: > 0 } || retry.RetryExhausted);
 
             if (retry.RetryExhausted)
             {
@@ -256,6 +343,7 @@ namespace SwanCode.Core.Chat.ViewModels
             Messages.Add(new ChatMessage { Role = MessageRoles.User, Content = message });
             InputText = string.Empty;
             IsBusy = true;
+            ChainStart();
 
             var cts = new CancellationTokenSource();
             _currentSendCts = cts;
@@ -330,6 +418,8 @@ namespace SwanCode.Core.Chat.ViewModels
                 toolUses: response.ToolUses,
                 hasLegacyCodeChanges: response.CodeChanges is { Length: > 0 });
             Messages.Add(msg);
+            AttachToolCalls(msg);
+            ChainAccumulate(msg, isFinal: response.ToolUses is not { Length: > 0 });
 
             await ProcessLegacyChannelsAsync(response);
 

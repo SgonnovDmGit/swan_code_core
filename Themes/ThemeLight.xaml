@@ -4,43 +4,59 @@
     <!-- ===================== COLORS ===================== -->
 
     <SolidColorBrush x:Key="PrimaryBackground" Color="#FFFFFF"/>
-    <SolidColorBrush x:Key="SecondaryBackground" Color="#F5F5F5"/>
-    <SolidColorBrush x:Key="TertiaryBackground" Color="#E8E8E8"/>
-    <SolidColorBrush x:Key="PrimaryForeground" Color="#1E1E1E"/>
-    <SolidColorBrush x:Key="SecondaryForeground" Color="#5F6368"/>
-    <SolidColorBrush x:Key="AccentColor" Color="#0078D4"/>
-    <SolidColorBrush x:Key="AccentHoverColor" Color="#106EBE"/>
-    <SolidColorBrush x:Key="AccentPressedColor" Color="#005A9E"/>
-    <SolidColorBrush x:Key="BorderColor" Color="#D1D1D1"/>
-    <SolidColorBrush x:Key="ButtonBackground" Color="#F0F0F0"/>
-    <SolidColorBrush x:Key="ButtonForeground" Color="#1E1E1E"/>
-    <SolidColorBrush x:Key="ButtonHoverBackground" Color="#E0E0E0"/>
-    <SolidColorBrush x:Key="ButtonPressedBackground" Color="#CCCCCC"/>
+    <SolidColorBrush x:Key="SecondaryBackground" Color="#F3F7F5"/>
+    <SolidColorBrush x:Key="TertiaryBackground" Color="#E8EFEB"/>
+    <SolidColorBrush x:Key="PrimaryForeground" Color="#1B2520"/>
+    <SolidColorBrush x:Key="SecondaryForeground" Color="#5E6B66"/>
+    <SolidColorBrush x:Key="AccentColor" Color="#0FA97A"/>
+    <SolidColorBrush x:Key="AccentHoverColor" Color="#0C8F67"/>
+    <SolidColorBrush x:Key="AccentPressedColor" Color="#0A7A58"/>
+    <SolidColorBrush x:Key="BorderColor" Color="#D5DDD9"/>
+    <SolidColorBrush x:Key="ButtonBackground" Color="#EEF3F0"/>
+    <SolidColorBrush x:Key="ButtonForeground" Color="#1B2520"/>
+    <SolidColorBrush x:Key="ButtonHoverBackground" Color="#E2EAE6"/>
+    <SolidColorBrush x:Key="ButtonPressedBackground" Color="#D6E0DA"/>
     <SolidColorBrush x:Key="TextBoxBackground" Color="#FFFFFF"/>
-    <SolidColorBrush x:Key="TextBoxBorder" Color="#CCCCCC"/>
+    <SolidColorBrush x:Key="TextBoxBorder" Color="#C6D0CB"/>
     <SolidColorBrush x:Key="TabActiveBackground" Color="#FFFFFF"/>
-    <SolidColorBrush x:Key="TabInactiveBackground" Color="#E8E8E8"/>
-    <SolidColorBrush x:Key="DataGridHeaderBackground" Color="#F0F0F0"/>
-    <SolidColorBrush x:Key="DataGridRowAltBackground" Color="#FAFAFA"/>
-    <SolidColorBrush x:Key="DataGridSelectedBackground" Color="#CCE5FF"/>
+    <SolidColorBrush x:Key="TabInactiveBackground" Color="#E8EFEB"/>
+    <SolidColorBrush x:Key="DataGridHeaderBackground" Color="#EEF3F0"/>
+    <SolidColorBrush x:Key="DataGridRowAltBackground" Color="#F8FAF9"/>
+    <SolidColorBrush x:Key="DataGridSelectedBackground" Color="#DDF5EB"/>
     <SolidColorBrush x:Key="MenuBackground" Color="#FFFFFF"/>
-    <SolidColorBrush x:Key="MenuHoverBackground" Color="#E8E8E8"/>
-    <SolidColorBrush x:Key="ScrollBarBackground" Color="#F0F0F0"/>
-    <SolidColorBrush x:Key="ScrollBarThumb" Color="#C1C1C1"/>
+    <SolidColorBrush x:Key="MenuHoverBackground" Color="#E8EFEB"/>
+    <SolidColorBrush x:Key="ScrollBarBackground" Color="#EEF3F0"/>
+    <SolidColorBrush x:Key="ScrollBarThumb" Color="#C6D0CB"/>
 
     <!-- Chat & Diff -->
-    <SolidColorBrush x:Key="UserBubbleBackground" Color="#DCF8C6"/>
-    <SolidColorBrush x:Key="AssistantBubbleBackground" Color="#F0F0F0"/>
-    <SolidColorBrush x:Key="DiffAddedBackground" Color="#E6FFE6"/>
-    <SolidColorBrush x:Key="DiffRemovedBackground" Color="#FFE6E6"/>
-    <SolidColorBrush x:Key="StatusBarBackground" Color="#007ACC"/>
-    <SolidColorBrush x:Key="StatusBarForeground" Color="#FFFFFF"/>
-    <SolidColorBrush x:Key="TitleBarBackground" Color="#E8E8E8"/>
-    <SolidColorBrush x:Key="TitleBarForeground" Color="#333333"/>
+    <SolidColorBrush x:Key="UserBubbleBackground" Color="#DDF5EB"/>
+    <SolidColorBrush x:Key="AssistantBubbleBackground" Color="#F3F7F5"/>
+    <SolidColorBrush x:Key="DiffAddedBackground" Color="#E3F6EA"/>
+    <SolidColorBrush x:Key="DiffRemovedBackground" Color="#FBE9E5"/>
+    <SolidColorBrush x:Key="StatusBarBackground" Color="#DFE8E3"/>
+    <SolidColorBrush x:Key="StatusBarForeground" Color="#4A564F"/>
+    <SolidColorBrush x:Key="TitleBarBackground" Color="#E8EFEB"/>
+    <SolidColorBrush x:Key="TitleBarForeground" Color="#1B2520"/>
 
     <!-- GroupBox -->
-    <SolidColorBrush x:Key="GroupBoxBorderColor" Color="#D1D1D1"/>
-    <SolidColorBrush x:Key="GroupBoxHeaderForeground" Color="#1E1E1E"/>
+    <SolidColorBrush x:Key="GroupBoxBorderColor" Color="#D5DDD9"/>
+    <SolidColorBrush x:Key="GroupBoxHeaderForeground" Color="#1B2520"/>
+
+    <!-- LenSa v0.13.3: reasoning / tool cards / status colors -->
+    <SolidColorBrush x:Key="AccentOnFill" Color="#FFFFFF"/>
+    <SolidColorBrush x:Key="UserBubbleBorder" Color="#BFE8D6"/>
+    <SolidColorBrush x:Key="ReasoningForeground" Color="#8A6D00"/>
+    <SolidColorBrush x:Key="ReasoningBackground" Color="#FFF7DC"/>
+    <SolidColorBrush x:Key="ReasoningBorder" Color="#F0E2A8"/>
+    <SolidColorBrush x:Key="ToolCardBackground" Color="#F6F9F7"/>
+    <SolidColorBrush x:Key="ToolCardBorder" Color="#DFE8E3"/>
+    <SolidColorBrush x:Key="SuccessColor" Color="#0FA97A"/>
+    <SolidColorBrush x:Key="ErrorColor" Color="#C93C32"/>
+    <SolidColorBrush x:Key="ErrorBackground" Color="#FCEBE9"/>
+    <SolidColorBrush x:Key="CodeBackground" Color="#F6F8F7"/>
+    <SolidColorBrush x:Key="CodeBorder" Color="#E2EAE6"/>
+    <SolidColorBrush x:Key="PopupBackground" Color="#FFFFFF"/>
+    <SolidColorBrush x:Key="PopupBorder" Color="#D5DDD9"/>
 
     <!-- ===================== STYLES ===================== -->
 
@@ -308,7 +324,7 @@
                         </Trigger>
                         <Trigger Property="IsSelected" Value="True">
                             <Setter TargetName="Border" Property="Background" Value="{DynamicResource AccentColor}"/>
-                            <Setter Property="Foreground" Value="#FFFFFF"/>
+                            <Setter Property="Foreground" Value="{DynamicResource AccentOnFill}"/>
                         </Trigger>
                     </ControlTemplate.Triggers>
                 </ControlTemplate>

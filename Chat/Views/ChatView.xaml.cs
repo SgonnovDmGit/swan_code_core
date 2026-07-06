@@ -2,6 +2,8 @@ using System.Collections.Specialized;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
+using System.Windows.Media;
+using System.Windows.Shapes;
 using SwanCode.Core.Chat.Models;
 using SwanCode.Core.Chat.ViewModels;
 
@@ -33,12 +35,38 @@ namespace SwanCode.Core.Chat.Views
             }
         }
 
-        // --- Кнопки под сообщением ассистента (T-000104) --------------------
+        // --- Кнопки-иконки под сообщением ассистента (T-000074) --------------
 
         private void CopyMessage_Click(object sender, RoutedEventArgs e)
         {
-            if ((sender as FrameworkElement)?.DataContext is not ChatMessage msg) return;
-            try { Clipboard.SetText(msg.Content ?? string.Empty); } catch { /* клипборд занят другим процессом */ }
+            if (sender is not Button btn || btn.DataContext is not ChatMessage msg) return;
+            try { Clipboard.SetText(msg.Content ?? string.Empty); }
+            catch { return; /* клипборд занят другим процессом */ }
+
+            // ✓-фидбек: иконка меняется на галочку SuccessColor на ~1.2 с
+            var original = btn.Content;
+            var check = new Path
+            {
+                Width = 13,
+                Height = 13,
+                Stretch = Stretch.Uniform,
+                Data = Geometry.Parse("M9 16.2 4.8 12l-1.4 1.4L9 19 21 7l-1.4-1.4z")
+            };
+            check.SetResourceReference(Shape.FillProperty, "SuccessColor");
+            btn.Content = check;
+            btn.IsEnabled = false;
+
+            var timer = new System.Windows.Threading.DispatcherTimer
+            {
+                Interval = System.TimeSpan.FromMilliseconds(1200)
+            };
+            timer.Tick += (_, _) =>
+            {
+                timer.Stop();
+                btn.Content = original;
+                btn.IsEnabled = true;
+            };
+            timer.Start();
         }
 
         private void QuoteMessage_Click(object sender, RoutedEventArgs e)
@@ -49,35 +77,6 @@ namespace SwanCode.Core.Chat.Views
             var lines = (msg.Content ?? string.Empty).Replace("\r\n", "\n").Split('\n');
             var quoted = string.Join("\n", System.Linq.Enumerable.Select(lines, l => "> " + l)) + "\n\n";
             vm.InputText = quoted + vm.InputText;
-
-            InputTextBox.Focus();
-            InputTextBox.CaretIndex = InputTextBox.Text.Length;
-        }
-
-        // Регенерации на сервере нет (сессия хранит историю) — retry повторяет
-        // предыдущий юзерский запрос новым ходом.
-        private void RetryMessage_Click(object sender, RoutedEventArgs e)
-        {
-            if ((sender as FrameworkElement)?.DataContext is not ChatMessage msg) return;
-            if (DataContext is not ChatViewModelBase vm) return;
-
-            var idx = vm.Messages.IndexOf(msg);
-            for (int i = (idx >= 0 ? idx : vm.Messages.Count) - 1; i >= 0; i--)
-            {
-                if (vm.Messages[i].Role != MessageRoles.User) continue;
-
-                vm.InputText = vm.Messages[i].Content ?? string.Empty;
-                if (vm.SendMessageCommand.CanExecute(null))
-                    vm.SendMessageCommand.Execute(null);
-                return;
-            }
-        }
-
-        private void InfoMessage_Click(object sender, RoutedEventArgs e)
-        {
-            if (sender is not Button btn || btn.ContextMenu == null) return;
-            btn.ContextMenu.PlacementTarget = btn;
-            btn.ContextMenu.IsOpen = true;
         }
 
         // RichTextBox сообщений глотает колесо мыши даже без своих скроллбаров —
@@ -91,20 +90,6 @@ namespace SwanCode.Core.Chat.Views
                 RoutedEvent = UIElement.MouseWheelEvent,
                 Source = sender
             });
-        }
-
-        // Enter → отправка; Shift+Enter → перенос строки (AcceptsReturn=true в XAML).
-        // По memory feedback_wpf_textbox_enter — обязательно PreviewKeyDown, а не KeyDown.
-        private void InputTextBox_PreviewKeyDown(object sender, KeyEventArgs e)
-        {
-            if (e.Key != Key.Enter) return;
-            if ((Keyboard.Modifiers & ModifierKeys.Shift) == ModifierKeys.Shift) return;
-
-            if (DataContext is ChatViewModelBase vm && vm.SendMessageCommand.CanExecute(null))
-            {
-                vm.SendMessageCommand.Execute(null);
-                e.Handled = true;
-            }
         }
     }
 }

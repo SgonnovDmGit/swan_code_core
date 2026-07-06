@@ -3,6 +3,7 @@ using System.Globalization;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Data;
+using System.Windows.Media;
 using SwanCode.Core.Services.Theme;
 
 namespace SwanCode.Core.Helpers
@@ -197,5 +198,86 @@ namespace SwanCode.Core.Helpers
         {
             throw new NotImplementedException();
         }
+    }
+
+    /// <summary>
+    /// Процент (0–100) → дуга кольца контекста (T-000074). Кольцо 27×27, r=10.5,
+    /// старт сверху, по часовой. 0% → пустая геометрия, ≥99.5% → полное кольцо.
+    /// </summary>
+    public class PercentToArcConverter : IValueConverter
+    {
+        private const double Cx = 13.5, Cy = 13.5, R = 10.5;
+
+        public object Convert(object value, Type targetType, object parameter, CultureInfo culture)
+        {
+            var pct = value switch
+            {
+                double d => d,
+                int i => i,
+                _ => 0.0
+            };
+            if (pct <= 0) return Geometry.Empty;
+            if (pct >= 99.5)
+                return new EllipseGeometry(new System.Windows.Point(Cx, Cy), R, R);
+
+            var angle = pct / 100.0 * 360.0;
+            var rad = (angle - 90.0) * Math.PI / 180.0;
+            var start = new System.Windows.Point(Cx, Cy - R);
+            var end = new System.Windows.Point(Cx + R * Math.Cos(rad), Cy + R * Math.Sin(rad));
+
+            var fig = new PathFigure { StartPoint = start, IsClosed = false, IsFilled = false };
+            fig.Segments.Add(new ArcSegment(end, new System.Windows.Size(R, R), 0,
+                isLargeArc: angle > 180, SweepDirection.Clockwise, isStroked: true));
+            var geo = new PathGeometry();
+            geo.Figures.Add(fig);
+            geo.Freeze();
+            return geo;
+        }
+
+        public object ConvertBack(object value, Type targetType, object parameter, CultureInfo culture)
+            => throw new NotImplementedException();
+    }
+
+    /// <summary>
+    /// Зона заполнения контекста: &lt;70 → "ok", 70–90 → "warn", &gt;90 → "crit".
+    /// Для DataTrigger'ов цвета кольца (мята → янтарь → красный).
+    /// </summary>
+    public class ContextZoneConverter : IValueConverter
+    {
+        public object Convert(object value, Type targetType, object parameter, CultureInfo culture)
+        {
+            var pct = value switch { double d => d, int i => i, _ => 0.0 };
+            return pct > 90 ? "crit" : pct >= 70 ? "warn" : "ok";
+        }
+
+        public object ConvertBack(object value, Type targetType, object parameter, CultureInfo culture)
+            => throw new NotImplementedException();
+    }
+
+    /// <summary>
+    /// [0] contextLength модели, [1] токены текущего контекста → влезает ли диалог
+    /// в окно модели. false ⇒ пункт списка моделей дизейблится (T-000074).
+    /// </summary>
+    public class ModelFitsContextConverter : IMultiValueConverter
+    {
+        public object Convert(object[] values, Type targetType, object parameter, CultureInfo culture)
+        {
+            if (values.Length < 2) return true;
+            var ctxLen = ToInt(values[0]);
+            var used = ToInt(values[1]);
+            if (ctxLen <= 0 || used <= 0) return true;
+            return used < ctxLen;
+        }
+
+        private static int ToInt(object v) => v switch
+        {
+            int i => i,
+            long l => (int)l,
+            double d => (int)d,
+            _ => 0
+        };
+
+        public object[] ConvertBack(object value, Type[] targetTypes, object parameter, CultureInfo culture)
+            => throw new NotImplementedException();
     }
 }

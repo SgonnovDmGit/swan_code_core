@@ -3,44 +3,60 @@
 
     <!-- ===================== COLORS ===================== -->
 
-    <SolidColorBrush x:Key="PrimaryBackground" Color="#1E1E1E"/>
-    <SolidColorBrush x:Key="SecondaryBackground" Color="#2D2D2D"/>
-    <SolidColorBrush x:Key="TertiaryBackground" Color="#383838"/>
-    <SolidColorBrush x:Key="PrimaryForeground" Color="#E0E0E0"/>
-    <SolidColorBrush x:Key="SecondaryForeground" Color="#A0A0A0"/>
-    <SolidColorBrush x:Key="AccentColor" Color="#4FC3F7"/>
-    <SolidColorBrush x:Key="AccentHoverColor" Color="#29B6F6"/>
-    <SolidColorBrush x:Key="AccentPressedColor" Color="#0288D1"/>
-    <SolidColorBrush x:Key="BorderColor" Color="#555555"/>
-    <SolidColorBrush x:Key="ButtonBackground" Color="#3C3C3C"/>
-    <SolidColorBrush x:Key="ButtonForeground" Color="#E0E0E0"/>
-    <SolidColorBrush x:Key="ButtonHoverBackground" Color="#4A4A4A"/>
-    <SolidColorBrush x:Key="ButtonPressedBackground" Color="#555555"/>
-    <SolidColorBrush x:Key="TextBoxBackground" Color="#2D2D2D"/>
-    <SolidColorBrush x:Key="TextBoxBorder" Color="#555555"/>
-    <SolidColorBrush x:Key="TabActiveBackground" Color="#2D2D2D"/>
-    <SolidColorBrush x:Key="TabInactiveBackground" Color="#383838"/>
-    <SolidColorBrush x:Key="DataGridHeaderBackground" Color="#383838"/>
-    <SolidColorBrush x:Key="DataGridRowAltBackground" Color="#252525"/>
-    <SolidColorBrush x:Key="DataGridSelectedBackground" Color="#264F78"/>
-    <SolidColorBrush x:Key="MenuBackground" Color="#2D2D2D"/>
-    <SolidColorBrush x:Key="MenuHoverBackground" Color="#3C3C3C"/>
-    <SolidColorBrush x:Key="ScrollBarBackground" Color="#2D2D2D"/>
-    <SolidColorBrush x:Key="ScrollBarThumb" Color="#555555"/>
+    <SolidColorBrush x:Key="PrimaryBackground" Color="#10161D"/>
+    <SolidColorBrush x:Key="SecondaryBackground" Color="#161E27"/>
+    <SolidColorBrush x:Key="TertiaryBackground" Color="#1D2733"/>
+    <SolidColorBrush x:Key="PrimaryForeground" Color="#E6EDF3"/>
+    <SolidColorBrush x:Key="SecondaryForeground" Color="#8B98A5"/>
+    <SolidColorBrush x:Key="AccentColor" Color="#6EE7BE"/>
+    <SolidColorBrush x:Key="AccentHoverColor" Color="#8FF0CE"/>
+    <SolidColorBrush x:Key="AccentPressedColor" Color="#5AD5AA"/>
+    <SolidColorBrush x:Key="BorderColor" Color="#2A3642"/>
+    <SolidColorBrush x:Key="ButtonBackground" Color="#1D2733"/>
+    <SolidColorBrush x:Key="ButtonForeground" Color="#E6EDF3"/>
+    <SolidColorBrush x:Key="ButtonHoverBackground" Color="#26323F"/>
+    <SolidColorBrush x:Key="ButtonPressedBackground" Color="#33404D"/>
+    <SolidColorBrush x:Key="TextBoxBackground" Color="#161E27"/>
+    <SolidColorBrush x:Key="TextBoxBorder" Color="#33404D"/>
+    <SolidColorBrush x:Key="TabActiveBackground" Color="#161E27"/>
+    <SolidColorBrush x:Key="TabInactiveBackground" Color="#1D2733"/>
+    <SolidColorBrush x:Key="DataGridHeaderBackground" Color="#1D2733"/>
+    <SolidColorBrush x:Key="DataGridRowAltBackground" Color="#131A22"/>
+    <SolidColorBrush x:Key="DataGridSelectedBackground" Color="#1C3A30"/>
+    <SolidColorBrush x:Key="MenuBackground" Color="#1D2733"/>
+    <SolidColorBrush x:Key="MenuHoverBackground" Color="#26323F"/>
+    <SolidColorBrush x:Key="ScrollBarBackground" Color="#161E27"/>
+    <SolidColorBrush x:Key="ScrollBarThumb" Color="#33404D"/>
 
     <!-- Chat & Diff -->
-    <SolidColorBrush x:Key="UserBubbleBackground" Color="#264F78"/>
-    <SolidColorBrush x:Key="AssistantBubbleBackground" Color="#383838"/>
-    <SolidColorBrush x:Key="DiffAddedBackground" Color="#1E3A1E"/>
-    <SolidColorBrush x:Key="DiffRemovedBackground" Color="#3A1E1E"/>
-    <SolidColorBrush x:Key="StatusBarBackground" Color="#007ACC"/>
-    <SolidColorBrush x:Key="StatusBarForeground" Color="#FFFFFF"/>
-    <SolidColorBrush x:Key="TitleBarBackground" Color="#2D2D30"/>
-    <SolidColorBrush x:Key="TitleBarForeground" Color="#E0E0E0"/>
+    <SolidColorBrush x:Key="UserBubbleBackground" Color="#1C3A30"/>
+    <SolidColorBrush x:Key="AssistantBubbleBackground" Color="#1A2430"/>
+    <SolidColorBrush x:Key="DiffAddedBackground" Color="#16301F"/>
+    <SolidColorBrush x:Key="DiffRemovedBackground" Color="#33201D"/>
+    <SolidColorBrush x:Key="StatusBarBackground" Color="#0B1015"/>
+    <SolidColorBrush x:Key="StatusBarForeground" Color="#8B98A5"/>
+    <SolidColorBrush x:Key="TitleBarBackground" Color="#0E1319"/>
+    <SolidColorBrush x:Key="TitleBarForeground" Color="#E6EDF3"/>
 
     <!-- GroupBox -->
-    <SolidColorBrush x:Key="GroupBoxBorderColor" Color="#555555"/>
-    <SolidColorBrush x:Key="GroupBoxHeaderForeground" Color="#E0E0E0"/>
+    <SolidColorBrush x:Key="GroupBoxBorderColor" Color="#2A3642"/>
+    <SolidColorBrush x:Key="GroupBoxHeaderForeground" Color="#E6EDF3"/>
+
+    <!-- LenSa v0.13.3: reasoning / tool cards / status colors -->
+    <SolidColorBrush x:Key="AccentOnFill" Color="#10161D"/>
+    <SolidColorBrush x:Key="UserBubbleBorder" Color="#25523F"/>
+    <SolidColorBrush x:Key="ReasoningForeground" Color="#FFD83D"/>
+    <SolidColorBrush x:Key="ReasoningBackground" Color="#14FFD83D"/>
+    <SolidColorBrush x:Key="ReasoningBorder" Color="#40FFD83D"/>
+    <SolidColorBrush x:Key="ToolCardBackground" Color="#151C24"/>
+    <SolidColorBrush x:Key="ToolCardBorder" Color="#2A3642"/>
+    <SolidColorBrush x:Key="SuccessColor" Color="#3FB68B"/>
+    <SolidColorBrush x:Key="ErrorColor" Color="#E5534B"/>
+    <SolidColorBrush x:Key="ErrorBackground" Color="#1AE5534B"/>
+    <SolidColorBrush x:Key="CodeBackground" Color="#0C1117"/>
+    <SolidColorBrush x:Key="CodeBorder" Color="#232E3A"/>
+    <SolidColorBrush x:Key="PopupBackground" Color="#1D2733"/>
+    <SolidColorBrush x:Key="PopupBorder" Color="#33404D"/>
 
     <!-- ===================== STYLES ===================== -->
 
@@ -247,7 +263,7 @@
                 <ControlTemplate TargetType="ComboBox">
                     <ControlTemplate.Resources>
                         <SolidColorBrush x:Key="{x:Static SystemColors.HighlightBrushKey}" Color="Transparent"/>
-                        <SolidColorBrush x:Key="{x:Static SystemColors.HighlightTextBrushKey}" Color="#E0E0E0"/>
+                        <SolidColorBrush x:Key="{x:Static SystemColors.HighlightTextBrushKey}" Color="#E6EDF3"/>
                         <SolidColorBrush x:Key="{x:Static SystemColors.InactiveSelectionHighlightBrushKey}" Color="Transparent"/>
                     </ControlTemplate.Resources>
                     <Grid>
@@ -308,7 +324,7 @@
                         </Trigger>
                         <Trigger Property="IsSelected" Value="True">
                             <Setter TargetName="Border" Property="Background" Value="{DynamicResource AccentColor}"/>
-                            <Setter Property="Foreground" Value="#FFFFFF"/>
+                            <Setter Property="Foreground" Value="{DynamicResource AccentOnFill}"/>
                         </Trigger>
                     </ControlTemplate.Triggers>
                 </ControlTemplate>

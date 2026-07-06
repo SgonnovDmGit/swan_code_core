@@ -145,8 +145,8 @@ namespace SwanCode.Core.Helpers
                 BorderThickness = new Thickness(2, 0, 0, 0),
                 LineHeight = 16
             };
-            para.SetResourceReference(TextElement.BackgroundProperty, "SecondaryBackground");
-            para.SetResourceReference(Paragraph.BorderBrushProperty, "BorderColor");
+            para.SetResourceReference(TextElement.BackgroundProperty, "CodeBackground");
+            para.SetResourceReference(Paragraph.BorderBrushProperty, "CodeBorder");
             return para;
         }
 
@@ -255,7 +255,7 @@ namespace SwanCode.Core.Helpers
                         FontFamily = new FontFamily("Consolas"),
                         FontSize = 12
                     };
-                    run.SetResourceReference(TextElement.BackgroundProperty, "SecondaryBackground");
+                    run.SetResourceReference(TextElement.BackgroundProperty, "CodeBackground");
                     inlines.Add(run);
                 }
                 else if (token.StartsWith("**"))
