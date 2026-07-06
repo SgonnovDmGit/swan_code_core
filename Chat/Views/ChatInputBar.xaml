@@ -151,7 +151,8 @@
                                 <StackPanel MinWidth="170" Margin="4">
                                     <DockPanel Margin="0,2"><TextBlock Text="{DynamicResource str_CtxTooltipUsed}" Foreground="{DynamicResource SecondaryForeground}" FontSize="12"/><TextBlock DockPanel.Dock="Right" HorizontalAlignment="Right" Text="{Binding ActiveChat.ContextTokens, StringFormat={}{0:N0}}" FontSize="12" Margin="12,0,0,0"/></DockPanel>
                                     <DockPanel Margin="0,2"><TextBlock Text="{DynamicResource str_CtxTooltipWindow}" Foreground="{DynamicResource SecondaryForeground}" FontSize="12"/><TextBlock DockPanel.Dock="Right" HorizontalAlignment="Right" Text="{Binding ProjectSettings.ContextLengthText}" FontSize="12" Margin="12,0,0,0"/></DockPanel>
-                                    <DockPanel Margin="0,2"><TextBlock Text="{DynamicResource str_CtxTooltipFill}" Foreground="{DynamicResource SecondaryForeground}" FontSize="12"/><TextBlock DockPanel.Dock="Right" HorizontalAlignment="Right" Text="{Binding ActiveChat.ContextFillPercent, StringFormat={}{0:F0}%}" FontSize="12" Margin="12,0,0,0"/></DockPanel>
+                                    <!-- Итоговая строка — акцентом, как ярусы в чипе «i» -->
+                                    <DockPanel Margin="0,2"><TextBlock Text="{DynamicResource str_CtxTooltipFill}" Foreground="{DynamicResource AccentColor}" FontSize="12"/><TextBlock DockPanel.Dock="Right" HorizontalAlignment="Right" Text="{Binding ActiveChat.ContextFillPercent, StringFormat={}{0:F0}%}" FontSize="12" FontWeight="SemiBold" Foreground="{DynamicResource AccentColor}" Margin="12,0,0,0"/></DockPanel>
                                 </StackPanel>
                             </ToolTip>
                         </Grid.ToolTip>
