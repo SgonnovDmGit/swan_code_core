@@ -151,8 +151,27 @@
                                 <StackPanel MinWidth="170" Margin="4">
                                     <DockPanel Margin="0,2"><TextBlock Text="{DynamicResource str_CtxTooltipUsed}" Foreground="{DynamicResource SecondaryForeground}" FontSize="12"/><TextBlock DockPanel.Dock="Right" HorizontalAlignment="Right" Text="{Binding ActiveChat.ContextTokens, StringFormat={}{0:N0}}" FontSize="12" Margin="12,0,0,0"/></DockPanel>
                                     <DockPanel Margin="0,2"><TextBlock Text="{DynamicResource str_CtxTooltipWindow}" Foreground="{DynamicResource SecondaryForeground}" FontSize="12"/><TextBlock DockPanel.Dock="Right" HorizontalAlignment="Right" Text="{Binding ProjectSettings.ContextLengthText}" FontSize="12" Margin="12,0,0,0"/></DockPanel>
-                                    <!-- Итоговая строка — акцентом, как ярусы в чипе «i» -->
-                                    <DockPanel Margin="0,2"><TextBlock Text="{DynamicResource str_CtxTooltipFill}" Foreground="{DynamicResource AccentColor}" FontSize="12"/><TextBlock DockPanel.Dock="Right" HorizontalAlignment="Right" Text="{Binding ActiveChat.ContextFillPercent, StringFormat={}{0:F0}%}" FontSize="12" FontWeight="SemiBold" Foreground="{DynamicResource AccentColor}" Margin="12,0,0,0"/></DockPanel>
+                                    <!-- Итоговая строка — цветом зоны заполнения (мята/янтарь/красный) -->
+                                    <DockPanel Margin="0,2">
+                                        <DockPanel.Resources>
+                                            <Style x:Key="ZoneText" TargetType="TextBlock">
+                                                <Setter Property="Foreground" Value="{DynamicResource AccentColor}"/>
+                                                <Setter Property="FontSize" Value="12"/>
+                                                <Style.Triggers>
+                                                    <DataTrigger Binding="{Binding ActiveChat.ContextFillPercent, Converter={StaticResource CtxZone}}" Value="warn">
+                                                        <Setter Property="Foreground" Value="{DynamicResource ReasoningForeground}"/>
+                                                    </DataTrigger>
+                                                    <DataTrigger Binding="{Binding ActiveChat.ContextFillPercent, Converter={StaticResource CtxZone}}" Value="crit">
+                                                        <Setter Property="Foreground" Value="{DynamicResource ErrorColor}"/>
+                                                    </DataTrigger>
+                                                </Style.Triggers>
+                                            </Style>
+                                        </DockPanel.Resources>
+                                        <TextBlock Style="{StaticResource ZoneText}" Text="{DynamicResource str_CtxTooltipFill}"/>
+                                        <TextBlock Style="{StaticResource ZoneText}" DockPanel.Dock="Right" HorizontalAlignment="Right"
+                                                   Text="{Binding ActiveChat.ContextFillPercent, StringFormat={}{0:F0}%}"
+                                                   FontWeight="SemiBold" Margin="12,0,0,0"/>
+                                    </DockPanel>
                                 </StackPanel>
                             </ToolTip>
                         </Grid.ToolTip>
