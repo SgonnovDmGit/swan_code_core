@@ -15,6 +15,7 @@
         <helpers:CollectionToVisibilityConverter x:Key="CollToVis"/>
         <helpers:StringToVisibilityConverter x:Key="StringToVisibilityConverter"/>
         <helpers:ToolDisplayNameConverter x:Key="ToolName"/>
+        <helpers:ToolInputToVisibilityConverter x:Key="ToolInputToVis"/>
 
         <!-- ================= USER ================= -->
         <DataTemplate x:Key="UserTemplate">
@@ -100,37 +101,50 @@
                               Visibility="{Binding ToolUses, Converter={StaticResource CollToVis}}">
                     <ItemsControl.ItemTemplate>
                         <DataTemplate>
-                            <Expander Margin="0,2">
-                                <Expander.Header>
-                                    <StackPanel Orientation="Horizontal">
-                                        <TextBlock Text="🔧 "
-                                                   Foreground="{DynamicResource SecondaryForeground}"
-                                                   FontSize="12"/>
-                                        <TextBlock Text="{Binding Name, Converter={StaticResource ToolName}}"
-                                                   FontSize="12"
-                                                   Foreground="{DynamicResource AccentColor}"/>
-                                        <TextBlock Text=" · "
-                                                   Foreground="{DynamicResource SecondaryForeground}"
-                                                   FontSize="12"/>
+                            <!-- Карточка тула: заметный фон + акцентная полоска, чтобы вызов
+                                 не сливался с фоном треда. Пустой инпут ({}) не показывается. -->
+                            <Border Background="{DynamicResource SecondaryBackground}"
+                                    BorderBrush="{DynamicResource AccentColor}"
+                                    BorderThickness="2,0,0,0"
+                                    CornerRadius="0,4,4,0"
+                                    Padding="10,6"
+                                    Margin="0,3">
+                                <Expander>
+                                    <Expander.Header>
+                                        <StackPanel Orientation="Horizontal">
+                                            <TextBlock Text="🔧 "
+                                                       Foreground="{DynamicResource SecondaryForeground}"
+                                                       FontSize="12"/>
+                                            <TextBlock Text="{Binding Name, Converter={StaticResource ToolName}}"
+                                                       FontSize="12"
+                                                       FontWeight="SemiBold"
+                                                       Foreground="{DynamicResource AccentColor}"/>
+                                            <TextBlock Text=" · "
+                                                       Foreground="{DynamicResource SecondaryForeground}"
+                                                       FontSize="12"
+                                                       Visibility="{Binding Input, Converter={StaticResource ToolInputToVis}}"/>
+                                            <TextBlock Text="{Binding Input}"
+                                                       FontFamily="Consolas"
+                                                       FontSize="11"
+                                                       MaxWidth="440"
+                                                       TextTrimming="CharacterEllipsis"
+                                                       Foreground="{DynamicResource SecondaryForeground}"
+                                                       Visibility="{Binding Input, Converter={StaticResource ToolInputToVis}}"/>
+                                        </StackPanel>
+                                    </Expander.Header>
+                                    <Border Background="{DynamicResource TertiaryBackground}"
+                                            CornerRadius="4"
+                                            Padding="10,8"
+                                            Margin="20,4,0,0"
+                                            Visibility="{Binding Input, Converter={StaticResource ToolInputToVis}}">
                                         <TextBlock Text="{Binding Input}"
                                                    FontFamily="Consolas"
                                                    FontSize="11"
-                                                   MaxWidth="440"
-                                                   TextTrimming="CharacterEllipsis"
-                                                   Foreground="{DynamicResource SecondaryForeground}"/>
-                                    </StackPanel>
-                                </Expander.Header>
-                                <Border Background="{DynamicResource SecondaryBackground}"
-                                        CornerRadius="4"
-                                        Padding="10,8"
-                                        Margin="20,4,0,0">
-                                    <TextBlock Text="{Binding Input}"
-                                               FontFamily="Consolas"
-                                               FontSize="11"
-                                               TextWrapping="Wrap"
-                                               Foreground="{DynamicResource PrimaryForeground}"/>
-                                </Border>
-                            </Expander>
+                                                   TextWrapping="Wrap"
+                                                   Foreground="{DynamicResource PrimaryForeground}"/>
+                                    </Border>
+                                </Expander>
+                            </Border>
                         </DataTemplate>
                     </ItemsControl.ItemTemplate>
                 </ItemsControl>
@@ -141,9 +155,11 @@
                               Visibility="{Binding ToolResults, Converter={StaticResource CollToVis}}">
                     <ItemsControl.ItemTemplate>
                         <DataTemplate>
-                            <Border BorderBrush="{DynamicResource BorderColor}"
-                                    BorderThickness="0,0,0,1"
-                                    Padding="6,4"
+                            <Border Background="{DynamicResource SecondaryBackground}"
+                                    BorderBrush="{DynamicResource BorderColor}"
+                                    BorderThickness="2,0,0,0"
+                                    CornerRadius="0,4,4,0"
+                                    Padding="10,4"
                                     Margin="0,2">
                                 <StackPanel Orientation="Horizontal">
                                     <TextBlock Text="↳ "
@@ -172,10 +188,12 @@
                     </ItemsControl.ItemTemplate>
                 </ItemsControl>
 
-                <!-- Actions row -->
+                <!-- Actions row: только у сообщений с текстом — на tool-раундах
+                     с пустым Content кнопкам нечего копировать/цитировать -->
                 <StackPanel Orientation="Horizontal"
                             HorizontalAlignment="Right"
-                            Margin="0,4,0,0">
+                            Margin="0,4,0,0"
+                            Visibility="{Binding Content, Converter={StaticResource EmptyToVis}, ConverterParameter=invert}">
                     <Button Content="⧉"
                             ToolTip="{DynamicResource str_Chat_ActionCopy}"
                             Click="CopyMessage_Click"

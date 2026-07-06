@@ -57,6 +57,24 @@ namespace SwanCode.Core.Helpers
         }
     }
 
+    /// <summary>Инпут тула → Visibility: null / пусто / "{}" / "null" → Collapsed
+    /// (тулы без параметров не показывают пустой JSON в чате).</summary>
+    public class ToolInputToVisibilityConverter : IValueConverter
+    {
+        public object Convert(object value, Type targetType, object parameter, CultureInfo culture)
+        {
+            var s = (value as string)?.Trim();
+            return string.IsNullOrEmpty(s) || s == "{}" || s == "null"
+                ? Visibility.Collapsed
+                : Visibility.Visible;
+        }
+
+        public object ConvertBack(object value, Type targetType, object parameter, CultureInfo culture)
+        {
+            throw new NotImplementedException();
+        }
+    }
+
     public class BoolToVisibilityConverter : IValueConverter
     {
         public object Convert(object value, Type targetType, object parameter, CultureInfo culture)
