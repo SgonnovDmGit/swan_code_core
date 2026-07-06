@@ -19,6 +19,7 @@
         <helpers:PercentToArcConverter x:Key="PercentToArc"/>
         <helpers:ContextZoneConverter x:Key="CtxZone"/>
         <helpers:ModelFitsContextConverter x:Key="ModelFits"/>
+        <helpers:IsNullConverter x:Key="IsNullConv"/>
     </UserControl.Resources>
 
     <Border Background="{DynamicResource SecondaryBackground}"
@@ -50,13 +51,31 @@
                                   ToolTip="{DynamicResource str_ModelComboHint}">
                             <ComboBox.ItemTemplate>
                                 <DataTemplate>
-                                    <DockPanel MinWidth="170">
-                                        <TextBlock DockPanel.Dock="Right" Text="{Binding DisplayContext}"
-                                                   Margin="10,0,0,0" FontSize="10.5"
-                                                   VerticalAlignment="Center"
-                                                   Foreground="{DynamicResource SecondaryForeground}"/>
+                                    <!-- В закрытом боксе — только имя (узкая зона); окно+цены —
+                                         только в выпадашке (триггер: есть предок ComboBoxItem) -->
+                                    <DockPanel x:Name="row">
+                                        <StackPanel x:Name="meta" DockPanel.Dock="Right" Orientation="Horizontal"
+                                                    Margin="12,0,0,0" VerticalAlignment="Center"
+                                                    Visibility="Collapsed">
+                                            <TextBlock Text="{Binding DisplayContext}" FontSize="10.5"
+                                                       Foreground="{DynamicResource SecondaryForeground}"/>
+                                            <TextBlock Text=" · " FontSize="10.5"
+                                                       Foreground="{DynamicResource SecondaryForeground}"/>
+                                            <TextBlock Text="{Binding DisplayPrice}" FontSize="10.5"
+                                                       Foreground="{DynamicResource SecondaryForeground}"/>
+                                        </StackPanel>
                                         <TextBlock Text="{Binding Name}" TextTrimming="CharacterEllipsis"/>
                                     </DockPanel>
+                                    <DataTemplate.Triggers>
+                                        <DataTrigger Value="False">
+                                            <DataTrigger.Binding>
+                                                <Binding RelativeSource="{RelativeSource FindAncestor, AncestorType=ComboBoxItem}"
+                                                         Converter="{StaticResource IsNullConv}"/>
+                                            </DataTrigger.Binding>
+                                            <Setter TargetName="meta" Property="Visibility" Value="Visible"/>
+                                            <Setter TargetName="row" Property="MinWidth" Value="210"/>
+                                        </DataTrigger>
+                                    </DataTemplate.Triggers>
                                 </DataTemplate>
                             </ComboBox.ItemTemplate>
                             <ComboBox.ItemContainerStyle>

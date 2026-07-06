@@ -200,6 +200,16 @@ namespace SwanCode.Core.Helpers
         }
     }
 
+    /// <summary>null → true. Для триггеров «элемент вне выпадашки» (нет предка ComboBoxItem).</summary>
+    public class IsNullConverter : IValueConverter
+    {
+        public object Convert(object value, Type targetType, object parameter, CultureInfo culture)
+            => value == null;
+
+        public object ConvertBack(object value, Type targetType, object parameter, CultureInfo culture)
+            => throw new NotImplementedException();
+    }
+
     /// <summary>
     /// Процент (0–100) → дуга кольца контекста (T-000074). Кольцо 27×27, r=10.5,
     /// старт сверху, по часовой. 0% → пустая геометрия, ≥99.5% → полное кольцо.
