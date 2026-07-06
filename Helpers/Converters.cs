@@ -36,6 +36,27 @@ namespace SwanCode.Core.Helpers
     }
 
 
+    /// <summary>
+    /// Имя тула → человекочитаемое локализованное имя (T-000102).
+    /// Ищет ключ str_Tool_&lt;имя&gt; в ресурсах приложения (словарь живёт в продуктовой
+    /// сборке); нет ключа — показывает сырое имя. ConverterParameter не используется.
+    /// </summary>
+    public class ToolDisplayNameConverter : IValueConverter
+    {
+        public object Convert(object value, Type targetType, object parameter, CultureInfo culture)
+        {
+            if (value is not string name || string.IsNullOrEmpty(name))
+                return value ?? string.Empty;
+
+            return Application.Current?.TryFindResource("str_Tool_" + name) as string ?? name;
+        }
+
+        public object ConvertBack(object value, Type targetType, object parameter, CultureInfo culture)
+        {
+            throw new NotImplementedException();
+        }
+    }
+
     public class BoolToVisibilityConverter : IValueConverter
     {
         public object Convert(object value, Type targetType, object parameter, CultureInfo culture)

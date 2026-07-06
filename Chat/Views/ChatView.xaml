@@ -14,6 +14,7 @@
         <helpers:EmptyStringToVisibilityConverter x:Key="EmptyToVis"/>
         <helpers:CollectionToVisibilityConverter x:Key="CollToVis"/>
         <helpers:StringToVisibilityConverter x:Key="StringToVisibilityConverter"/>
+        <helpers:ToolDisplayNameConverter x:Key="ToolName"/>
 
         <!-- ================= USER ================= -->
         <DataTemplate x:Key="UserTemplate">
@@ -105,8 +106,7 @@
                                         <TextBlock Text="🔧 "
                                                    Foreground="{DynamicResource SecondaryForeground}"
                                                    FontSize="12"/>
-                                        <TextBlock Text="{Binding Name}"
-                                                   FontFamily="Consolas"
+                                        <TextBlock Text="{Binding Name, Converter={StaticResource ToolName}}"
                                                    FontSize="12"
                                                    Foreground="{DynamicResource AccentColor}"/>
                                         <TextBlock Text=" · "
@@ -149,8 +149,7 @@
                                     <TextBlock Text="↳ "
                                                Foreground="{DynamicResource SecondaryForeground}"
                                                FontSize="12"/>
-                                    <TextBlock Text="{Binding Name}"
-                                               FontFamily="Consolas"
+                                    <TextBlock Text="{Binding Name, Converter={StaticResource ToolName}}"
                                                FontSize="11"
                                                Foreground="{DynamicResource AccentColor}"/>
                                     <TextBlock Text=" · "
