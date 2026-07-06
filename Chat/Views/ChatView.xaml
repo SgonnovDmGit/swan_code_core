@@ -58,10 +58,16 @@
                     CornerRadius="10,10,2,10"
                     Padding="12,8"
                     Margin="60,8,0,8">
-                <TextBlock Text="{Binding Content}"
-                           TextWrapping="Wrap"
-                           Foreground="{DynamicResource PrimaryForeground}"
-                           FontSize="13"/>
+                <!-- Read-only TextBox вместо TextBlock: текст своего сообщения
+                     тоже выделяется и копируется (смок T-000074) -->
+                <TextBox Text="{Binding Content, Mode=OneWay}"
+                         IsReadOnly="True"
+                         TextWrapping="Wrap"
+                         Background="Transparent"
+                         BorderThickness="0"
+                         Padding="0"
+                         Foreground="{DynamicResource PrimaryForeground}"
+                         FontSize="13"/>
             </Border>
         </DataTemplate>
 
@@ -153,20 +159,6 @@
                                        LineHeight="18"/>
                         </Expander>
                     </Border>
-
-                    <!-- Content: markdown-рендер (T-000103) -->
-                    <RichTextBox helpers:MarkdownBehavior.Markdown="{Binding Content}"
-                                 IsReadOnly="True"
-                                 IsReadOnlyCaretVisible="False"
-                                 IsDocumentEnabled="True"
-                                 Background="Transparent"
-                                 BorderThickness="0"
-                                 Padding="0"
-                                 Margin="0,0,0,6"
-                                 VerticalScrollBarVisibility="Disabled"
-                                 HorizontalScrollBarVisibility="Disabled"
-                                 PreviewMouseWheel="MessageBody_PreviewMouseWheel"
-                                 Visibility="{Binding Content, Converter={StaticResource EmptyToVis}, ConverterParameter=invert}"/>
 
                     <!-- Карточки тулов: running / done / failed (T-000074, DLemma) -->
                     <!-- Без Visibility-байндинга: коллекция наполняется ПОСЛЕ добавления
@@ -290,27 +282,50 @@
                         </ItemsControl.ItemTemplate>
                     </ItemsControl>
 
-                    <!-- Кнопки-иконки: Копировать (⇉ ✓-фидбек) и Цитата -->
-                    <StackPanel Orientation="Horizontal"
-                                HorizontalAlignment="Right"
-                                Margin="0,4,0,0"
-                                Visibility="{Binding Content, Converter={StaticResource EmptyToVis}, ConverterParameter=invert}">
-                        <Button Style="{StaticResource MsgActionButton}"
-                                ToolTip="{DynamicResource str_Chat_ActionCopy}"
-                                Click="CopyMessage_Click"
-                                Margin="0,0,4,0">
-                            <Path Width="13" Height="13" Stretch="Uniform"
-                                  Fill="{Binding Foreground, RelativeSource={RelativeSource AncestorType=Button}}"
-                                  Data="M8 3h11a1 1 0 0 1 1 1v13h-2V5H8V3zM4 7h11a1 1 0 0 1 1 1v12a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V8a1 1 0 0 1 1-1zm1 2v10h9V9H5z"/>
-                        </Button>
-                        <Button Style="{StaticResource MsgActionButton}"
-                                ToolTip="{DynamicResource str_Chat_ActionQuote}"
-                                Click="QuoteMessage_Click">
-                            <Path Width="13" Height="13" Stretch="Uniform"
-                                  Fill="{Binding Foreground, RelativeSource={RelativeSource AncestorType=Button}}"
-                                  Data="M6.5 5C4 5 2 7.2 2 10c0 2.5 1.7 4.4 4 4.4-.3 1.9-1.5 3.3-3.4 4.1l.9 1.5c3.6-1.2 5.9-4.1 5.9-8C9.4 8 8.3 5 6.5 5zm11 0C15 5 13 7.2 13 10c0 2.5 1.7 4.4 4 4.4-.3 1.9-1.5 3.3-3.4 4.1l.9 1.5c3.6-1.2 5.9-4.1 5.9-8C20.4 8 19.3 5 17.5 5z"/>
-                        </Button>
-                    </StackPanel>
+                    <!-- Пузырь ответа модели (смок T-000074: выделить фоном, как в мокапе):
+                         markdown-контент + кнопки-иконки. Tool-раунды без текста — без пузыря. -->
+                    <Border Background="{DynamicResource AssistantBubbleBackground}"
+                            BorderBrush="{DynamicResource BorderColor}"
+                            BorderThickness="1"
+                            CornerRadius="10,10,10,2"
+                            Padding="13,10"
+                            Margin="0,3,0,0"
+                            Visibility="{Binding Content, Converter={StaticResource EmptyToVis}, ConverterParameter=invert}">
+                        <StackPanel>
+                            <!-- Content: markdown-рендер (T-000103) -->
+                            <RichTextBox helpers:MarkdownBehavior.Markdown="{Binding Content}"
+                                         IsReadOnly="True"
+                                         IsReadOnlyCaretVisible="False"
+                                         IsDocumentEnabled="True"
+                                         Background="Transparent"
+                                         BorderThickness="0"
+                                         Padding="0"
+                                         VerticalScrollBarVisibility="Disabled"
+                                         HorizontalScrollBarVisibility="Disabled"
+                                         PreviewMouseWheel="MessageBody_PreviewMouseWheel"/>
+
+                            <!-- Кнопки-иконки: Копировать (✓-фидбек) и Цитата -->
+                            <StackPanel Orientation="Horizontal"
+                                        HorizontalAlignment="Right"
+                                        Margin="0,6,0,0">
+                                <Button Style="{StaticResource MsgActionButton}"
+                                        ToolTip="{DynamicResource str_Chat_ActionCopy}"
+                                        Click="CopyMessage_Click"
+                                        Margin="0,0,4,0">
+                                    <Path Width="13" Height="13" Stretch="Uniform"
+                                          Fill="{Binding Foreground, RelativeSource={RelativeSource AncestorType=Button}}"
+                                          Data="M8 3h11a1 1 0 0 1 1 1v13h-2V5H8V3zM4 7h11a1 1 0 0 1 1 1v12a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V8a1 1 0 0 1 1-1zm1 2v10h9V9H5z"/>
+                                </Button>
+                                <Button Style="{StaticResource MsgActionButton}"
+                                        ToolTip="{DynamicResource str_Chat_ActionQuote}"
+                                        Click="QuoteMessage_Click">
+                                    <Path Width="13" Height="13" Stretch="Uniform"
+                                          Fill="{Binding Foreground, RelativeSource={RelativeSource AncestorType=Button}}"
+                                          Data="M6.5 5C4 5 2 7.2 2 10c0 2.5 1.7 4.4 4 4.4-.3 1.9-1.5 3.3-3.4 4.1l.9 1.5c3.6-1.2 5.9-4.1 5.9-8C9.4 8 8.3 5 6.5 5zm11 0C15 5 13 7.2 13 10c0 2.5 1.7 4.4 4 4.4-.3 1.9-1.5 3.3-3.4 4.1l.9 1.5c3.6-1.2 5.9-4.1 5.9-8C20.4 8 19.3 5 17.5 5z"/>
+                                </Button>
+                            </StackPanel>
+                        </StackPanel>
+                    </Border>
 
                     <!-- Чип аналитики цепочки: DisplayName модели + «i» с 2-ярусным хинтом -->
                     <StackPanel Orientation="Horizontal"
@@ -332,11 +347,15 @@
                                        FontSize="12" HorizontalAlignment="Center" VerticalAlignment="Center"
                                        Foreground="{DynamicResource SecondaryForeground}"/>
                             <Border.ToolTip>
+                                <!-- Вверх и влево от чипа (смок): Top + сдвиг так, чтобы
+                                     правый край хинта лёг к чипу, а не уходил за окно -->
                                 <ToolTip Background="{DynamicResource PopupBackground}"
                                          BorderBrush="{DynamicResource PopupBorder}"
                                          Foreground="{DynamicResource PrimaryForeground}"
+                                         Placement="Top"
+                                         HorizontalOffset="-205"
                                          Padding="0">
-                                    <StackPanel MinWidth="210" Margin="0,6">
+                                    <StackPanel Width="222" Margin="0,6">
                                         <TextBlock Text="{DynamicResource str_ChainTokens}"
                                                    FontSize="10.5" FontWeight="SemiBold" Margin="13,2,13,4"
                                                    Foreground="{DynamicResource AccentColor}"/>
