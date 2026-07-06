@@ -124,8 +124,9 @@
                     <Grid Grid.Column="1" Width="27" Height="27" Margin="10,0,0,0" VerticalAlignment="Center"
                           Background="Transparent"
                           ToolTipService.InitialShowDelay="150">
-                        <Ellipse Stroke="{DynamicResource TertiaryBackground}" StrokeThickness="3.6"
-                                 Width="24.6" Height="24.6"/>
+                        <!-- Трек — BorderColor: TertiaryBackground сливался с фоном строки ввода -->
+                        <Ellipse Stroke="{DynamicResource BorderColor}" StrokeThickness="3.6"
+                                 Width="24.6" Height="24.6" Opacity="0.7"/>
                         <Path StrokeThickness="3.6"
                               StrokeStartLineCap="Round" StrokeEndLineCap="Round"
                               Data="{Binding ActiveChat.ContextFillPercent, Converter={StaticResource PercentToArc}}">

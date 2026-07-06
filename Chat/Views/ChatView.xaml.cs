@@ -79,6 +79,21 @@ namespace SwanCode.Core.Chat.Views
             vm.InputText = quoted + vm.InputText;
         }
 
+        // Спиннер running-карточки тула: вращение стартуем кодом на локальном
+        // (незамороженном) RotateTransform — Storyboard из Style-триггера на
+        // шаблонном трансформе кидает InvalidOperationException (frozen instance).
+        private void Spinner_Loaded(object sender, RoutedEventArgs e)
+        {
+            if (sender is not Path path) return;
+            var rotate = new RotateTransform();
+            path.RenderTransform = rotate;
+            rotate.BeginAnimation(RotateTransform.AngleProperty,
+                new System.Windows.Media.Animation.DoubleAnimation(0, 360, System.TimeSpan.FromSeconds(0.8))
+                {
+                    RepeatBehavior = System.Windows.Media.Animation.RepeatBehavior.Forever
+                });
+        }
+
         // RichTextBox сообщений глотает колесо мыши даже без своих скроллбаров —
         // пробрасываем событие родительскому ScrollViewer треда.
         private void MessageBody_PreviewMouseWheel(object sender, MouseWheelEventArgs e)
