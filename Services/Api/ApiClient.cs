@@ -43,6 +43,20 @@ namespace SwanCode.Core.Services.Api
         public string? ProductKey { get; set; }
         public string? UserKey { get; set; }
 
+        /// <summary>
+        /// Диагностический хук сырых тел chat-ответов (T-000112). Клиент подключает
+        /// его к файловому логу при windowTrackerLog; null — no-op. Тела режутся по месту.
+        /// </summary>
+        public static Action<string>? DiagLog;
+
+        private static void Diag(string tag, string body)
+        {
+            var log = DiagLog;
+            if (log == null) return;
+            var b = body.Length > 1500 ? body[..1500] + $"…(+{body.Length - 1500})" : body;
+            try { log($"{tag}: {b}"); } catch { }
+        }
+
         public ApiClient(string baseUrl)
         {
             _baseUrl = string.Empty;
@@ -123,6 +137,7 @@ namespace SwanCode.Core.Services.Api
             using (submitResponse)
             {
                 var submitBody = await submitResponse.Content.ReadAsStringAsync(cancellationToken);
+                Diag($"submit HTTP {(int)submitResponse.StatusCode}", submitBody);
 
                 if (submitResponse.StatusCode == HttpStatusCode.OK)
                     return DeserializeOrThrow<ChatResponse>(submitBody);
@@ -195,6 +210,7 @@ namespace SwanCode.Core.Services.Api
                 using (pollResponse)
                 {
                     var pollBody = await pollResponse.Content.ReadAsStringAsync(cancellationToken);
+                    Diag($"poll HTTP {(int)pollResponse.StatusCode}", pollBody);
 
                     if (!pollResponse.IsSuccessStatusCode)
                     {
