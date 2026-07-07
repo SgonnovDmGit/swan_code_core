@@ -54,6 +54,11 @@ namespace SwanCode.Core.Services.AppConfig
         [JsonPropertyName("knownBases")]
         public System.Collections.Generic.List<string> KnownBases { get; set; } = new();
 
+        // 1С-клиент: BaseKey выбранного конфигуратора — восстановление выбора при старте
+        // мгновенно, до фонового скана процессов (смок 07.07); Universal игнорирует.
+        [JsonPropertyName("selectedBaseKey")]
+        public string SelectedBaseKey { get; set; } = string.Empty;
+
         // 1С-клиент: режим работы AI planning|auto|review (T-000094, пока визуальный стаб).
         [JsonPropertyName("assistMode")]
         public string AssistMode { get; set; } = "auto";
