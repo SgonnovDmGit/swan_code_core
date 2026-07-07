@@ -66,6 +66,11 @@ namespace SwanCode.Core.Services.AppConfig
         [JsonPropertyName("debugMode")]
         public bool DebugMode { get; set; }
 
+        // Диагностический лог трекера имён окон 1С (T-000112). Отдельно от debugMode:
+        // включается правкой config.json, НЕ спамит чат [REQUEST]/[RESPONSE] блоками.
+        [JsonPropertyName("windowTrackerLog")]
+        public bool WindowTrackerLog { get; set; }
+
         [JsonPropertyName("minimizeToTray")]
         public bool MinimizeToTray { get; set; }
 

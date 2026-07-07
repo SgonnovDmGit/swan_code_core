@@ -18,7 +18,10 @@ namespace SwanCode.Core.Services.Api
         [JsonPropertyName("sessionId")]
         public string SessionId { get; set; } = string.Empty;
 
+        // Провайдер один канонический (SwanCode), сервер значение игнорирует с v0.40.0
+        // и поле опционально с v0.47.0 — не шлём лишнего: пустое опускается.
         [JsonPropertyName("provider")]
+        [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingDefault)]
         public string Provider { get; set; } = string.Empty;
 
         [JsonPropertyName("model")]
