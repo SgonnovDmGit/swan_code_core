@@ -111,7 +111,13 @@ namespace SwanCode.Core.Chat.ViewModels
             set
             {
                 if (SetProperty(ref _isBusy, value))
+                {
                     OnBusyChanged(value);
+                    // WPF переопрашивает CanExecute лениво (по input-событиям) —
+                    // без форса кнопки на !IsBusy остаются серыми до движения мыши
+                    // (смок 07.07: «+» после выбора диалога временно неактивна).
+                    System.Windows.Input.CommandManager.InvalidateRequerySuggested();
+                }
             }
         }
 
