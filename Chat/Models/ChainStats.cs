@@ -19,12 +19,17 @@ namespace SwanCode.Core.Chat.Models
         public double TokensPerSecond =>
             WallSeconds > 0.1 ? CompletionTokens / WallSeconds : 0;
 
-        public string SpeedDisplay => $"{TokensPerSecond:F1} tok/s";
+        // Единица измерения — в подписи хинта (str_ChainSpeed «скорость, ток/с»),
+        // значение — только число, чтобы цифры яруса стояли на одном уровне.
+        public string SpeedDisplay => $"{TokensPerSecond:F1}";
 
-        // Локаленезависимый формат: до 90с — «38 s», дальше — «2:05».
+        // До 90с — «38 с» (единица локализована), дальше — «2:05».
         public string WallDisplay => WallSeconds >= 90
             ? $"{(int)(WallSeconds / 60)}:{(int)(WallSeconds % 60):00}"
-            : $"{WallSeconds:F0} s";
+            : $"{WallSeconds:F0} {SecondsUnit()}";
+
+        private static string SecondsUnit() =>
+            System.Windows.Application.Current?.TryFindResource("str_UnitSeconds") as string ?? "s";
         public string CoinsDisplay => CostCoins.HasValue ? $"{CostCoins.Value:F2}" : "—";
         public bool HasCoins => CostCoins.HasValue;
     }
