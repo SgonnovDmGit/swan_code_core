@@ -41,7 +41,7 @@
     <sys:String x:Key="str_Chat_InputPlaceholder">Type a message…</sys:String>
     <sys:String x:Key="str_Chat_InputHint">Enter — send, Shift+Enter — newline</sys:String>
     <sys:String x:Key="str_Chat_SendButton">Send</sys:String>
-    <sys:String x:Key="str_Chat_NewChat">New chat</sys:String>
+    <sys:String x:Key="str_Chat_NewChat">New dialog</sys:String>
     <sys:String x:Key="str_Chat_Interrupt">Interrupt</sys:String>
 
     <!-- Assistant states -->
