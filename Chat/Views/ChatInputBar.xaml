@@ -8,8 +8,10 @@
     <!--
       Строка ввода на всю ширину окна (T-000074, мокап 2026-07-06).
       Контракт DataContext (продуктовый MainViewModel):
-        ActiveChat        : ChatViewModelBase (+ ContextFillPercent/ContextTokensDisplay у наследника)
-        ProjectSettings   : Models / SelectedModel / ReasoningSelection / ContextLengthText
+        ActiveChat         : ChatViewModelBase (+ ContextFillPercent/ContextTokensDisplay у наследника)
+        ProjectSettings    : Models / SelectedModel / ReasoningSelection / ContextLengthText
+        IsSidebarCollapsed : bool, опционально (T-000111) — рейка: зона модели схлопывается
+                             до кружка контекста (46px). Нет свойства → зона всегда развёрнута.
       Левая зона = ширина сайдбара (250): комбо модели над «Размышления», справа кружок контекста.
     -->
     <UserControl.Resources>
@@ -27,16 +29,28 @@
             BorderThickness="0,1,0,0">
         <Grid>
             <Grid.ColumnDefinitions>
-                <ColumnDefinition Width="250"/>
+                <ColumnDefinition Width="Auto"/>
                 <ColumnDefinition Width="*"/>
                 <ColumnDefinition Width="Auto"/>
             </Grid.ColumnDefinitions>
 
-            <!-- ===== Левая зона: модель + размышления + кружок (граница сайдбара продолжается) ===== -->
+            <!-- ===== Левая зона: модель + размышления + кружок (граница сайдбара продолжается).
+                 В рейке (T-000111) остаётся только кружок контекста по центру. ===== -->
             <Border Grid.Column="0"
                     BorderBrush="{DynamicResource BorderColor}"
-                    BorderThickness="0,0,1,0"
-                    Padding="10,8">
+                    BorderThickness="0,0,1,0">
+                <Border.Style>
+                    <Style TargetType="Border">
+                        <Setter Property="Width" Value="250"/>
+                        <Setter Property="Padding" Value="10,8"/>
+                        <Style.Triggers>
+                            <DataTrigger Binding="{Binding IsSidebarCollapsed}" Value="True">
+                                <Setter Property="Width" Value="46"/>
+                                <Setter Property="Padding" Value="0,8"/>
+                            </DataTrigger>
+                        </Style.Triggers>
+                    </Style>
+                </Border.Style>
                 <Grid VerticalAlignment="Center">
                     <Grid.ColumnDefinitions>
                         <ColumnDefinition Width="*"/>
@@ -44,6 +58,15 @@
                     </Grid.ColumnDefinitions>
 
                     <StackPanel Grid.Column="0">
+                        <StackPanel.Style>
+                            <Style TargetType="StackPanel">
+                                <Style.Triggers>
+                                    <DataTrigger Binding="{Binding IsSidebarCollapsed}" Value="True">
+                                        <Setter Property="Visibility" Value="Collapsed"/>
+                                    </DataTrigger>
+                                </Style.Triggers>
+                            </Style>
+                        </StackPanel.Style>
                         <!-- Комбо модели: DisplayName + окно; не влезающие — задизейблены -->
                         <ComboBox ItemsSource="{Binding ProjectSettings.Models}"
                                   SelectedItem="{Binding ProjectSettings.SelectedModel}"
@@ -120,10 +143,25 @@
                         </DockPanel>
                     </StackPanel>
 
-                    <!-- Кружок контекста: дуга = заполнение; мята → янтарь ≥70% → красный >90% -->
-                    <Grid Grid.Column="1" Width="27" Height="27" Margin="10,0,0,0" VerticalAlignment="Center"
+                    <!-- Кружок контекста: дуга = заполнение; мята → янтарь ≥70% → красный >90%.
+                         В рейке — единственный видимый элемент зоны, по центру. -->
+                    <Grid Width="27" Height="27" VerticalAlignment="Center"
                           Background="Transparent"
                           ToolTipService.InitialShowDelay="150">
+                        <Grid.Style>
+                            <Style TargetType="Grid">
+                                <Setter Property="Margin" Value="10,0,0,0"/>
+                                <Setter Property="Grid.Column" Value="1"/>
+                                <Style.Triggers>
+                                    <DataTrigger Binding="{Binding IsSidebarCollapsed}" Value="True">
+                                        <Setter Property="Margin" Value="0"/>
+                                        <Setter Property="Grid.Column" Value="0"/>
+                                        <Setter Property="Grid.ColumnSpan" Value="2"/>
+                                        <Setter Property="HorizontalAlignment" Value="Center"/>
+                                    </DataTrigger>
+                                </Style.Triggers>
+                            </Style>
+                        </Grid.Style>
                         <!-- Трек — BorderColor: TertiaryBackground сливался с фоном строки ввода -->
                         <Ellipse Stroke="{DynamicResource BorderColor}" StrokeThickness="3.6"
                                  Width="24.6" Height="24.6" Opacity="0.7"/>

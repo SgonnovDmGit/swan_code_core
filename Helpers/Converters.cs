@@ -210,6 +210,19 @@ namespace SwanCode.Core.Helpers
             => throw new NotImplementedException();
     }
 
+    /// <summary>Первая буква строки (upper-case) — буква-аватар свёрнутой рейки сайдбара (T-000111).</summary>
+    public class FirstLetterConverter : IValueConverter
+    {
+        public object Convert(object value, Type targetType, object parameter, CultureInfo culture)
+        {
+            var s = (value as string)?.Trim();
+            return string.IsNullOrEmpty(s) ? "?" : s[..1].ToUpperInvariant();
+        }
+
+        public object ConvertBack(object value, Type targetType, object parameter, CultureInfo culture)
+            => throw new NotImplementedException();
+    }
+
     /// <summary>
     /// Процент (0–100) → дуга кольца контекста (T-000074). Кольцо 27×27, r=10.5,
     /// старт сверху, по часовой. 0% → пустая геометрия, ≥99.5% → полное кольцо.
