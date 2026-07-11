@@ -82,6 +82,9 @@
     <sys:String x:Key="str_Chat_InfoTime">time</sys:String>
 
     <!-- Task board (T-000080..T-000082, REQ-021) -->
+    <!-- Context compaction (ANNOUNCE-005) -->
+    <sys:String x:Key="str_Chat_ContextCompacted">Context compacted — earlier history is summarized below</sys:String>
+
     <sys:String x:Key="str_TaskBoard_Title">Task board</sys:String>
     <sys:String x:Key="str_TaskBoard_Pending">pending</sys:String>
     <sys:String x:Key="str_TaskBoard_InProgress">in progress</sys:String>

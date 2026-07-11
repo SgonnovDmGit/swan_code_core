@@ -6,6 +6,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using System.Windows.Input;
 using SwanCode.Core.Chat.Models;
+using SwanCode.Core.Chat.Services;
 using SwanCode.Core.Helpers;
 using SwanCode.Core.Services.Api;
 
@@ -128,7 +129,16 @@ namespace SwanCode.Core.Chat.ViewModels
         public string SessionId
         {
             get => _sessionId;
-            protected set => SetProperty(ref _sessionId, value);
+            protected set
+            {
+                var previous = _sessionId;
+                if (!SetProperty(ref _sessionId, value)) return;
+
+                // Доску завели до первого сообщения (сессии ещё не было) — сервер выдал id,
+                // переносим черновик под него, иначе он потерялся бы при перезапуске.
+                if (string.IsNullOrEmpty(previous) && !string.IsNullOrEmpty(value) && TaskBoard.Count > 0)
+                    PersistTaskBoard();
+            }
         }
 
         public ICommand SendMessageCommand { get; }
@@ -406,9 +416,80 @@ namespace SwanCode.Core.Chat.ViewModels
 
         private void OnTaskBoardChanged()
         {
+            Renumber();
+            PersistTaskBoard();
             OnPropertyChanged(nameof(HasTaskBoard));
             OnPropertyChanged(nameof(TaskBoardSummary));
             OnPropertyChanged(nameof(IsFilterBarVisible));
+        }
+
+        // Доска — состояние клиента (сервер её не хранит, REQ-021). Пишем на диск при любом
+        // изменении: состав, порядок, статус, галочка, трекер. Файл крошечный, дебаунс не нужен.
+        private bool _suppressPersist;
+
+        private void PersistTaskBoard()
+        {
+            if (_suppressPersist || string.IsNullOrEmpty(SessionId)) return;
+            TaskBoardStore.Save(SessionId, TaskBoard);
+        }
+
+        /// <summary>
+        /// Поднять доску открываемого диалога (T-000131). Зовёт продукт при переключении
+        /// диалога — сразу после того, как выставлен SessionId.
+        /// </summary>
+        protected void RestoreTaskBoard(string sessionId)
+        {
+            _suppressPersist = true;
+            _suppressUserDoneEcho = true;
+            try
+            {
+                foreach (var old in TaskBoard) old.PropertyChanged -= OnTaskItemChanged;
+                TaskBoard.Clear();
+
+                foreach (var item in TaskBoardStore.Load(sessionId))
+                {
+                    item.PropertyChanged += OnTaskItemChanged;
+                    TaskBoard.Add(item);
+                }
+
+                Renumber();
+                OnPropertyChanged(nameof(CurrentTask));
+                OnCurrentTaskChanged(CurrentTask);
+                TasksView.Refresh();
+            }
+            finally
+            {
+                _suppressPersist = false;
+                _suppressUserDoneEcho = false;
+            }
+        }
+
+        /// <summary>
+        /// «Наш №» — позиция в доске, а не Id модели: та шлёт «step1»/«task-2», и показывать
+        /// это человеку бессмысленно (смок 12.07). Id остаётся ключом мержа тула.
+        /// </summary>
+        private void Renumber()
+        {
+            for (var i = 0; i < TaskBoard.Count; i++)
+                TaskBoard[i].Ordinal = i + 1;
+        }
+
+        /// <summary>
+        /// Если текущая не выбрана — метим первую незавершённую. Иначе после плана от AI
+        /// доска есть, а маркеры кода не знают номера задачи, пока человек не ткнёт ● руками.
+        /// </summary>
+        private void EnsureCurrentTask()
+        {
+            if (TaskBoard.Any(t => t.IsCurrent)) return;
+
+            var next = TaskBoard.FirstOrDefault(t =>
+                t.Status != TaskBoardStatus.Done && t.Status != TaskBoardStatus.Cancelled);
+            if (next == null) return;
+
+            next.IsCurrent = true;
+            OnPropertyChanged(nameof(CurrentTask));
+            OnCurrentTaskChanged(next);
+            if (IsBoardModeCurrent) TasksView.Refresh();
         }
 
         /// <summary>
@@ -420,6 +501,10 @@ namespace SwanCode.Core.Chat.ViewModels
         private void OnTaskItemChanged(object? sender, System.ComponentModel.PropertyChangedEventArgs e)
         {
             if (sender is not TaskItem item) return;
+
+            // Ordinal — производная от позиции, её пересчитывает Renumber; сохранять по ней незачем
+            if (e.PropertyName != nameof(TaskItem.Ordinal))
+                PersistTaskBoard();
 
             if (e.PropertyName == nameof(TaskItem.Status) || e.PropertyName == nameof(TaskItem.UserDone))
                 OnPropertyChanged(nameof(TaskBoardSummary));
@@ -453,55 +538,61 @@ namespace SwanCode.Core.Chat.ViewModels
                     "Пустой tasks[]. Каждый элемент — {id, name, status} (status: pending|in_progress|done|blocked|cancelled)."));
             }
 
+            var replace = IsJsonTrue(input, "replace");
+
+            // Разбираем и валидируем ВСЁ до первой мутации доски: иначе ошибка на третьей
+            // строке при replace:true оставляла доску очищенной и полузаполненной, а модель
+            // получала failure — состояние расходилось с тем, что она думает.
+            var parsed = new List<TaskPatch>();
+            var index = 0;
+            foreach (var el in tasksEl.EnumerateArray())
+            {
+                index++;
+
+                var id = JsonStr(el, "id");
+                if (string.IsNullOrWhiteSpace(id))
+                    return Task.FromResult(ToolFailure(toolUse, "INVALID_INPUT",
+                        $"Задача №{index}: не передан id."));
+
+                var status = JsonStr(el, "status");
+                if (!TaskBoardStatus.IsValid(status))
+                    return Task.FromResult(ToolFailure(toolUse, "INVALID_INPUT",
+                        $"Задача №{index}: неизвестный status «{status}». Допустимо: pending, in_progress, done, blocked, cancelled."));
+
+                var name = JsonStr(el, "name");
+                var isNew = replace || TaskBoard.All(t => t.Id != id);
+                if (isNew && string.IsNullOrWhiteSpace(name))
+                    return Task.FromResult(ToolFailure(toolUse, "INVALID_INPUT",
+                        $"Задача №{index}: новая задача «{id}» без name."));
+
+                parsed.Add(new TaskPatch(id!, name, status!,
+                    JsonStr(el, "description"), JsonStr(el, "externalId"), JsonStr(el, "notes")));
+            }
+
             _suppressUserDoneEcho = true;
             try
             {
-                if (input.TryGetProperty("replace", out var replaceEl) &&
-                    replaceEl.ValueKind == System.Text.Json.JsonValueKind.True)
+                if (replace)
                 {
                     foreach (var old in TaskBoard) old.PropertyChanged -= OnTaskItemChanged;
                     TaskBoard.Clear();
                 }
 
                 var applied = 0;
-                var index = 0;
-                foreach (var el in tasksEl.EnumerateArray())
+                foreach (var p in parsed)
                 {
-                    index++;
-                    string? Str(string prop) =>
-                        el.ValueKind == System.Text.Json.JsonValueKind.Object &&
-                        el.TryGetProperty(prop, out var v) &&
-                        v.ValueKind == System.Text.Json.JsonValueKind.String
-                            ? v.GetString()
-                            : null;
-
-                    var id = Str("id");
-                    if (string.IsNullOrWhiteSpace(id))
-                        return Task.FromResult(ToolFailure(toolUse, "INVALID_INPUT",
-                            $"Задача №{index}: не передан id."));
-
-                    var status = Str("status");
-                    if (!TaskBoardStatus.IsValid(status))
-                        return Task.FromResult(ToolFailure(toolUse, "INVALID_INPUT",
-                            $"Задача №{index}: неизвестный status «{status}». Допустимо: pending, in_progress, done, blocked, cancelled."));
-
-                    var name = Str("name");
-                    var existing = TaskBoard.FirstOrDefault(t => t.Id == id);
+                    var existing = TaskBoard.FirstOrDefault(t => t.Id == p.Id);
 
                     if (existing == null)
                     {
-                        if (string.IsNullOrWhiteSpace(name))
-                            return Task.FromResult(ToolFailure(toolUse, "INVALID_INPUT",
-                                $"Задача №{index}: новая задача «{id}» без name."));
-
                         var item = new TaskItem
                         {
-                            Id = id!,
-                            Name = name!,
-                            Status = status!,
-                            Description = Str("description"),
-                            ExternalId = Str("externalId"),
-                            Notes = Str("notes")
+                            Id = p.Id,
+                            Name = p.Name!,
+                            Status = p.Status,
+                            Description = p.Description,
+                            ExternalId = p.ExternalId,
+                            Notes = p.Notes
                         };
                         item.PropertyChanged += OnTaskItemChanged;
                         TaskBoard.Add(item);
@@ -509,15 +600,17 @@ namespace SwanCode.Core.Chat.ViewModels
                     else
                     {
                         // Имя при обновлении можно не слать — сохраняем прежнее (REQ-021)
-                        if (!string.IsNullOrWhiteSpace(name)) existing.Name = name!;
-                        existing.Status = status!;
-                        if (Str("description") is { } desc) existing.Description = desc;
-                        if (Str("externalId") is { } ext) existing.ExternalId = ext;
-                        if (Str("notes") is { } notes) existing.Notes = notes;
+                        if (!string.IsNullOrWhiteSpace(p.Name)) existing.Name = p.Name!;
+                        existing.Status = p.Status;
+                        if (p.Description is { } desc) existing.Description = desc;
+                        if (p.ExternalId is { } ext) existing.ExternalId = ext;
+                        if (p.Notes is { } notes) existing.Notes = notes;
                     }
                     applied++;
                 }
 
+                Renumber();
+                EnsureCurrentTask();
                 OnPropertyChanged(nameof(TaskBoardSummary));
 
                 // Возвращаем ВСЮ доску, включая UserDone — так AI сразу видит,
@@ -542,6 +635,40 @@ namespace SwanCode.Core.Chat.ViewModels
             {
                 _suppressUserDoneEcho = false;
             }
+        }
+
+        /// <summary>Разобранная строка тула — до применения к доске.</summary>
+        private readonly record struct TaskPatch(
+            string Id, string? Name, string Status,
+            string? Description, string? ExternalId, string? Notes);
+
+        /// <summary>
+        /// Строковое поле из JSON. Модель сплошь и рядом шлёт число там, где схема просит
+        /// строку («id»: 1, «externalId»: 902) — принимаем и число тоже, иначе доска
+        /// разваливается на первом же ходе AI.
+        /// </summary>
+        private static string? JsonStr(System.Text.Json.JsonElement el, string prop)
+        {
+            if (el.ValueKind != System.Text.Json.JsonValueKind.Object ||
+                !el.TryGetProperty(prop, out var v)) return null;
+
+            return v.ValueKind switch
+            {
+                System.Text.Json.JsonValueKind.String => v.GetString(),
+                System.Text.Json.JsonValueKind.Number => v.GetRawText(),
+                _ => null
+            };
+        }
+
+        /// <summary>Булево поле: принимаем и true, и строку "true" (та же вольность модели).</summary>
+        private static bool IsJsonTrue(System.Text.Json.JsonElement el, string prop)
+        {
+            if (el.ValueKind != System.Text.Json.JsonValueKind.Object ||
+                !el.TryGetProperty(prop, out var v)) return false;
+
+            return v.ValueKind == System.Text.Json.JsonValueKind.True ||
+                   (v.ValueKind == System.Text.Json.JsonValueKind.String &&
+                    string.Equals(v.GetString(), "true", StringComparison.OrdinalIgnoreCase));
         }
 
         /// <summary>Сброс доски — новый диалог начинается с чистого листа.</summary>

@@ -33,12 +33,24 @@ namespace SwanCode.Core.Chat.Models
         private string? _externalId;
         private string? _description;
         private string? _notes;
+        private int _ordinal;
 
         /// <summary>
-        /// Наш номер задачи в рамках диалога — назначает AI (или клиент для ручных строк),
-        /// ключ мержа тула. Не путать с <see cref="ExternalId"/> (номер в Jira и т.п.).
+        /// Ключ мержа тула — назначает AI (или клиент для ручных строк). Модель шлёт что угодно
+        /// («step1», «task-2»), поэтому Id — внутренний идентификатор, а пользователю в колонке
+        /// «наш №» показывается <see cref="Ordinal"/>. Не путать с <see cref="ExternalId"/>.
         /// </summary>
         public string Id { get; init; } = string.Empty;
+
+        /// <summary>
+        /// Порядковый номер строки в доске (1, 2, 3…) — то, что видит человек в колонке «наш №».
+        /// Пересчитывается доской при любом изменении состава/порядка.
+        /// </summary>
+        public int Ordinal
+        {
+            get => _ordinal;
+            set => SetProperty(ref _ordinal, value);
+        }
 
         public string Name
         {

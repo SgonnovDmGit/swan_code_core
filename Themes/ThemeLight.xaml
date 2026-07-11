@@ -58,6 +58,11 @@
     <SolidColorBrush x:Key="SuccessColor" Color="#0FA97A"/>
     <SolidColorBrush x:Key="ErrorColor" Color="#C93C32"/>
     <SolidColorBrush x:Key="ErrorBackground" Color="#FCEBE9"/>
+
+    <!-- Заливка чипов статуса доски (см. Theme1C) -->
+    <SolidColorBrush x:Key="StatusDoneBackground" Color="#DCF3EA"/>
+    <SolidColorBrush x:Key="StatusProgressBackground" Color="#DCF0F5"/>
+    <SolidColorBrush x:Key="StatusBlockedBackground" Color="#FBE3E1"/>
     <SolidColorBrush x:Key="CodeBackground" Color="#F6F8F7"/>
     <SolidColorBrush x:Key="CodeBorder" Color="#E2EAE6"/>
     <SolidColorBrush x:Key="PopupBackground" Color="#FFFFFF"/>

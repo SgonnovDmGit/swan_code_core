@@ -427,13 +427,41 @@
             </Border>
         </DataTemplate>
 
+        <!-- ================= CHECKPOINT (ANNOUNCE-005) =================
+             Сервер сжал старую историю в rolling-summary. Не реплика — разделитель:
+             показываем, ГДЕ свёрнут контекст, и даём прочитать сводку. -->
+        <DataTemplate x:Key="CheckpointTemplate">
+            <Border Background="{DynamicResource TertiaryBackground}"
+                    BorderBrush="{DynamicResource BorderColor}"
+                    BorderThickness="1"
+                    CornerRadius="8"
+                    Padding="12,8"
+                    Margin="24,10,24,10">
+                <StackPanel>
+                    <StackPanel Orientation="Horizontal" Margin="0,0,0,4">
+                        <TextBlock Text="⇲" FontSize="13" Margin="0,0,7,0"
+                                   VerticalAlignment="Center"
+                                   Foreground="{DynamicResource SecondaryForeground}"/>
+                        <TextBlock Text="{DynamicResource str_Chat_ContextCompacted}"
+                                   FontSize="11" FontWeight="SemiBold"
+                                   VerticalAlignment="Center"
+                                   Foreground="{DynamicResource SecondaryForeground}"/>
+                    </StackPanel>
+                    <TextBlock Text="{Binding Content}"
+                               FontSize="11" TextWrapping="Wrap" Opacity="0.85"
+                               Foreground="{DynamicResource SecondaryForeground}"/>
+                </StackPanel>
+            </Border>
+        </DataTemplate>
+
         <!-- ================= SELECTOR ================= -->
         <views:MessageTemplateSelector x:Key="MessageSelector"
                                         UserTemplate="{StaticResource UserTemplate}"
                                         AssistantTemplate="{StaticResource AssistantTemplate}"
                                         ToolUseTemplate="{StaticResource ToolUseTemplate}"
                                         ToolResultTemplate="{StaticResource ToolResultTemplate}"
-                                        DebugTemplate="{StaticResource DebugTemplate}"/>
+                                        DebugTemplate="{StaticResource DebugTemplate}"
+                                        CheckpointTemplate="{StaticResource CheckpointTemplate}"/>
     </UserControl.Resources>
 
     <!-- Композер вынесен в ChatInputBar (T-000074): ChatView = только лента -->

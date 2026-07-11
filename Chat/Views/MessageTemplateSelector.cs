@@ -15,6 +15,7 @@ namespace SwanCode.Core.Chat.Views
         public DataTemplate? ToolUseTemplate { get; set; }
         public DataTemplate? ToolResultTemplate { get; set; }
         public DataTemplate? DebugTemplate { get; set; }
+        public DataTemplate? CheckpointTemplate { get; set; }
 
         public override DataTemplate? SelectTemplate(object item, DependencyObject container)
         {
@@ -27,6 +28,7 @@ namespace SwanCode.Core.Chat.Views
                 MessageRoles.ToolUse => ToolUseTemplate,
                 MessageRoles.ToolResult => ToolResultTemplate,
                 MessageRoles.Debug => DebugTemplate,
+                MessageRoles.Checkpoint => CheckpointTemplate,
                 _ => AssistantTemplate
             };
         }

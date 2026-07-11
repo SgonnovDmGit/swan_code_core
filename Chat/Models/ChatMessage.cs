@@ -11,6 +11,12 @@ namespace SwanCode.Core.Chat.Models
         public const string ToolUse = "tool_use";
         public const string ToolResult = "tool_result";
         public const string Debug = "debug";
+
+        /// <summary>
+        /// Синтетическая строка истории (ANNOUNCE-005): сервер сжал старый контекст в
+        /// rolling-summary. Не сообщение — индикатор «здесь контекст свёрнут».
+        /// </summary>
+        public const string Checkpoint = "checkpoint";
     }
 
     public static class ReasoningEfforts
@@ -206,6 +212,7 @@ namespace SwanCode.Core.Chat.Models
         public bool IsToolUse => Role == MessageRoles.ToolUse;
         public bool IsToolResult => Role == MessageRoles.ToolResult;
         public bool IsDebug => Role == MessageRoles.Debug;
+        public bool IsCheckpoint => Role == MessageRoles.Checkpoint;
 
         public bool HasCodeChanges
         {
@@ -223,6 +230,6 @@ namespace SwanCode.Core.Chat.Models
             }
         }
 
-        public bool CanQuote => !IsUser && !IsDebug && !IsThinking && !IsToolUse && !IsToolResult;
+        public bool CanQuote => !IsUser && !IsDebug && !IsThinking && !IsToolUse && !IsToolResult && !IsCheckpoint;
     }
 }

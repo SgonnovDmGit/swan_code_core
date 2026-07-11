@@ -46,7 +46,8 @@
             <Setter Property="Foreground" Value="{DynamicResource SecondaryForeground}"/>
         </Style>
 
-        <!-- Чип статуса ИИ: цветом красится и рамка, и текст -->
+        <!-- Чип статуса ИИ: заливка + рамка + текст. Одной рамки мало — на кремовом фоне
+             1С-темы статус не читался (смок 12.07). -->
         <Style x:Key="StatusChipBorder" TargetType="Border">
             <Setter Property="Background" Value="{DynamicResource ToolCardBackground}"/>
             <Setter Property="BorderBrush" Value="{DynamicResource BorderColor}"/>
@@ -57,12 +58,15 @@
             <Style.Triggers>
                 <DataTrigger Binding="{Binding Status}" Value="done">
                     <Setter Property="BorderBrush" Value="{DynamicResource SuccessColor}"/>
+                    <Setter Property="Background" Value="{DynamicResource StatusDoneBackground}"/>
                 </DataTrigger>
                 <DataTrigger Binding="{Binding Status}" Value="in_progress">
                     <Setter Property="BorderBrush" Value="{DynamicResource AccentColor}"/>
+                    <Setter Property="Background" Value="{DynamicResource StatusProgressBackground}"/>
                 </DataTrigger>
                 <DataTrigger Binding="{Binding Status}" Value="blocked">
                     <Setter Property="BorderBrush" Value="{DynamicResource ErrorColor}"/>
+                    <Setter Property="Background" Value="{DynamicResource StatusBlockedBackground}"/>
                 </DataTrigger>
             </Style.Triggers>
         </Style>
@@ -74,12 +78,15 @@
             <Style.Triggers>
                 <DataTrigger Binding="{Binding Status}" Value="done">
                     <Setter Property="Foreground" Value="{DynamicResource SuccessColor}"/>
+                    <Setter Property="FontWeight" Value="SemiBold"/>
                 </DataTrigger>
                 <DataTrigger Binding="{Binding Status}" Value="in_progress">
                     <Setter Property="Foreground" Value="{DynamicResource AccentColor}"/>
+                    <Setter Property="FontWeight" Value="SemiBold"/>
                 </DataTrigger>
                 <DataTrigger Binding="{Binding Status}" Value="blocked">
                     <Setter Property="Foreground" Value="{DynamicResource ErrorColor}"/>
+                    <Setter Property="FontWeight" Value="SemiBold"/>
                 </DataTrigger>
             </Style.Triggers>
         </Style>
@@ -89,7 +96,9 @@
             BorderBrush="{DynamicResource BorderColor}"
             BorderThickness="1"
             CornerRadius="6">
-        <DockPanel>
+        <!-- Scope общий для шапки и строк: иначе шапка живёт в своём scope, её Auto-колонки
+             схлопываются по ширине текста и заголовки наезжают друг на друга (смок 12.07). -->
+        <DockPanel Grid.IsSharedSizeScope="True">
             <!-- Шапка: ЗАДАЧИ | режимы | счётчик + свернуть -->
             <Border DockPanel.Dock="Top"
                     Background="{DynamicResource TertiaryBackground}"
@@ -261,7 +270,7 @@
                     </Style>
                 </ScrollViewer.Style>
 
-                <ItemsControl ItemsSource="{Binding TasksView}" Grid.IsSharedSizeScope="True">
+                <ItemsControl ItemsSource="{Binding TasksView}">
                     <ItemsControl.ItemTemplate>
                         <DataTemplate>
                             <!-- Строка — drop-цель перетаскивания (порядок задач) -->
@@ -326,14 +335,16 @@
                                         </Grid>
                                     </StackPanel>
 
-                                    <!-- Наш № — обведён, но не редактируется: его назначает ИИ -->
+                                    <!-- Наш № — порядковый номер строки. Не Id модели: она шлёт
+                                         «step1»/«task-2», это внутренний ключ мержа, не для глаз. -->
                                     <Border Grid.Column="3" VerticalAlignment="Top" Margin="0,0,10,0"
                                             Background="{DynamicResource InputReadOnlyBackground}"
                                             BorderBrush="{DynamicResource InputBorder}"
                                             BorderThickness="1" CornerRadius="3"
-                                            Padding="6,3" MinWidth="64"
+                                            Padding="6,3" MinWidth="44"
                                             ToolTip="{DynamicResource str_TaskBoard_OurIdHint}">
-                                        <TextBlock Text="{Binding Id}" FontSize="12"
+                                        <TextBlock Text="{Binding Ordinal}" FontSize="12"
+                                                   HorizontalAlignment="Center"
                                                    Foreground="{DynamicResource SecondaryForeground}"/>
                                     </Border>
 

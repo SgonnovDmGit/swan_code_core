@@ -13,8 +13,13 @@ namespace SwanCode.Core.Services.AppConfig
         [JsonPropertyName("language")]
         public string Language { get; set; } = "Ru";
 
+        // Канонический прод (ANNOUNCE-006, сервер v0.71.0). Дефолт localhost был удобен
+        // разработчику и ломал онбординг: свежая установка стучалась в никуда.
+        // Старый apic.lcmswantest.tech — переходный алиас, на него не завязываемся.
+        public const string DefaultServerAddress = "api.lensacode.ai";
+
         [JsonPropertyName("serverAddress")]
-        public string ServerAddress { get; set; } = "localhost:8080";
+        public string ServerAddress { get; set; } = DefaultServerAddress;
 
         [JsonPropertyName("selectedProvider")]
         public string SelectedProvider { get; set; } = string.Empty;
