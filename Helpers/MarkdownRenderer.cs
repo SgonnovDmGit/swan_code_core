@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Text.RegularExpressions;
 using System.Windows;
 using System.Windows.Controls;
@@ -22,7 +23,10 @@ namespace SwanCode.Core.Helpers
             {
                 PagePadding = new Thickness(0),
                 FontSize = 13,
-                LineHeight = 19
+                LineHeight = 19,
+                // Fallback-цепочка: Segoe UI не содержит эмодзи, и ⏳/✅ из ответа модели
+                // рисовались квадратиками-крокозябрами (смок 12.07).
+                FontFamily = UiFontWithEmoji
             };
             doc.SetResourceReference(TextElement.ForegroundProperty, "PrimaryForeground");
 
@@ -76,6 +80,14 @@ namespace SwanCode.Core.Helpers
                     continue;
                 }
 
+                // Таблица GFM: строка с пайпами + следующая строка-разделитель |---|---|
+                if (IsTableStart(lines, i))
+                {
+                    FlushParagraph(doc, paragraphBuffer);
+                    doc.Blocks.Add(BuildTable(lines, ref i));
+                    continue;
+                }
+
                 // Список (маркированный / нумерованный) — собираем все подряд идущие пункты
                 if (IsListItem(trimmed, out _, out _))
                 {
@@ -104,6 +116,78 @@ namespace SwanCode.Core.Helpers
 
             FlushParagraph(doc, paragraphBuffer);
             return doc;
+        }
+
+        /// <summary>Шрифт UI с эмодзи-фолбэком: Segoe UI не содержит ⏳/✅ и рисует квадратики.</summary>
+        private static readonly FontFamily UiFontWithEmoji =
+            new("Segoe UI, Segoe UI Emoji, Segoe UI Symbol");
+
+        // --- Таблицы (GFM) --------------------------------------------------
+
+        /// <summary>Заголовок таблицы + строка-разделитель под ним: |---|:--:|---|</summary>
+        private static bool IsTableStart(string[] lines, int i)
+        {
+            if (i + 1 >= lines.Length) return false;
+            if (!lines[i].Contains('|')) return false;
+            return Regex.IsMatch(lines[i + 1].Trim(), @"^\|?\s*:?-{2,}:?\s*(\|\s*:?-{2,}:?\s*)*\|?$");
+        }
+
+        private static string[] SplitRow(string line) =>
+            line.Trim().Trim('|').Split('|').Select(c => c.Trim()).ToArray();
+
+        private static Table BuildTable(string[] lines, ref int i)
+        {
+            var header = SplitRow(lines[i]);
+            i++; // строка-разделитель — её саму не рисуем
+            var rows = new List<string[]>();
+
+            while (i + 1 < lines.Length && lines[i + 1].Contains('|') &&
+                   lines[i + 1].Trim().Length > 0)
+            {
+                i++;
+                rows.Add(SplitRow(lines[i]));
+            }
+
+            var table = new Table
+            {
+                CellSpacing = 0,
+                Margin = new Thickness(0, 4, 0, 8),
+                FontSize = 12
+            };
+            for (var c = 0; c < header.Length; c++)
+                table.Columns.Add(new TableColumn());
+
+            var group = new TableRowGroup();
+            table.RowGroups.Add(group);
+            group.Rows.Add(BuildTableRow(header, isHeader: true, header.Length));
+            foreach (var r in rows)
+                group.Rows.Add(BuildTableRow(r, isHeader: false, header.Length));
+
+            return table;
+        }
+
+        private static TableRow BuildTableRow(string[] cells, bool isHeader, int columnCount)
+        {
+            var row = new TableRow();
+            if (isHeader) row.FontWeight = FontWeights.SemiBold;
+
+            for (var c = 0; c < columnCount; c++)
+            {
+                var para = new Paragraph { Margin = new Thickness(0) };
+                if (c < cells.Length) AppendInlines(para.Inlines, cells[c]);
+
+                var cell = new TableCell(para)
+                {
+                    Padding = new Thickness(7, 4, 7, 4),
+                    BorderThickness = new Thickness(0, 0, 0, 1)
+                };
+                cell.SetResourceReference(TableCell.BorderBrushProperty, "BorderColor");
+                if (isHeader)
+                    cell.SetResourceReference(TableCell.BackgroundProperty, "TertiaryBackground");
+
+                row.Cells.Add(cell);
+            }
+            return row;
         }
 
         // --- Блоки ----------------------------------------------------------

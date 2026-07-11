@@ -282,6 +282,28 @@ namespace SwanCode.Core.Helpers
     /// [0] contextLength модели, [1] токены текущего контекста → влезает ли диалог
     /// в окно модели. false ⇒ пункт списка моделей дизейблится (T-000074).
     /// </summary>
+    /// <summary>
+    /// Отступ шапки таблицы под вертикальный скроллбар ленты (замер 12.07).
+    /// Шапка живёт вне ScrollViewer и про скроллбар не знает: он съедает у строк ~17px,
+    /// и всё правее звёздной колонки уезжает относительно заголовков. Отдаём разницу
+    /// ActualWidth − ViewportWidth как правый Margin — скроллбара нет, значит и отступа нет.
+    /// </summary>
+    public class ScrollBarGapConverter : IMultiValueConverter
+    {
+        public object Convert(object[] values, Type targetType, object parameter, CultureInfo culture)
+        {
+            if (values.Length < 2 ||
+                values[0] is not double actual || values[1] is not double viewport)
+                return new Thickness(0);
+
+            var gap = actual - viewport;
+            return new Thickness(0, 0, gap > 0 ? gap : 0, 0);
+        }
+
+        public object[] ConvertBack(object value, Type[] targetTypes, object parameter, CultureInfo culture) =>
+            throw new NotSupportedException();
+    }
+
     public class ModelFitsContextConverter : IMultiValueConverter
     {
         public object Convert(object[] values, Type targetType, object parameter, CultureInfo culture)

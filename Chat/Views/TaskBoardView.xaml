@@ -16,6 +16,20 @@
     <UserControl.Resources>
         <helpers:BoolToVisibilityConverter x:Key="BoolToVisibilityTb"/>
         <helpers:EmptyStringToVisibilityConverter x:Key="EmptyToVisTb"/>
+        <helpers:ScrollBarGapConverter x:Key="ScrollGapTb"/>
+
+        <!-- Ширины колонок — ОДИН источник для шапки и строк (замер 12.07).
+             SharedSizeGroup здесь не работал: шапка и строки не согласовывались, колонки
+             шапки вставали по ширине текста заголовков (⠿ и ● вообще получали 0), заголовки
+             разъезжались с полями. Фиксированные ширины убирают зависимость от scope,
+             длины заголовка и скроллбара. -->
+        <GridLength x:Key="ColDrag">26</GridLength>
+        <GridLength x:Key="ColCurrent">30</GridLength>
+        <GridLength x:Key="ColOurId">58</GridLength>
+        <GridLength x:Key="ColTracker">104</GridLength>
+        <GridLength x:Key="ColStatus">108</GridLength>
+        <GridLength x:Key="ColUser">58</GridLength>
+        <GridLength x:Key="ColDel">26</GridLength>
 
         <!-- Поля ввода: своя кисть InputBackground. Красить их в Primary/Secondary/Tertiary нельзя —
              в теме 1С все три равны #F5F2DD, поле сливалось с панелью (смок 11.07). -->
@@ -224,23 +238,34 @@
                     BorderBrush="{DynamicResource BorderColor}" BorderThickness="0,0,0,1"
                     Padding="8,3"
                     Visibility="{Binding IsTaskBoardExpanded, Converter={StaticResource BoolToVisibilityTb}}">
-                <Grid>
+                <!-- Правый отступ = ширина вертикального скроллбара ленты: иначе шапка шире
+                     строк на ~17px и всё правее звёздной колонки разъезжается (замер 12.07). -->
+                <Grid x:Name="HeaderGrid">
+                    <Grid.Margin>
+                        <MultiBinding Converter="{StaticResource ScrollGapTb}">
+                            <Binding ElementName="RowsScroll" Path="ActualWidth"/>
+                            <Binding ElementName="RowsScroll" Path="ViewportWidth"/>
+                        </MultiBinding>
+                    </Grid.Margin>
                     <Grid.ColumnDefinitions>
-                        <ColumnDefinition Width="Auto" SharedSizeGroup="colDrag"/>
-                        <ColumnDefinition Width="Auto" SharedSizeGroup="colCurrent"/>
+                        <ColumnDefinition Width="{StaticResource ColDrag}"/>
+                        <ColumnDefinition Width="{StaticResource ColCurrent}"/>
                         <ColumnDefinition Width="*"/>
-                        <ColumnDefinition Width="Auto" SharedSizeGroup="colOurId"/>
-                        <ColumnDefinition Width="Auto" SharedSizeGroup="colTracker"/>
-                        <ColumnDefinition Width="Auto" SharedSizeGroup="colStatus"/>
-                        <ColumnDefinition Width="Auto" SharedSizeGroup="colUser"/>
-                        <ColumnDefinition Width="Auto" SharedSizeGroup="colDel"/>
+                        <ColumnDefinition Width="{StaticResource ColOurId}"/>
+                        <ColumnDefinition Width="{StaticResource ColTracker}"/>
+                        <ColumnDefinition Width="{StaticResource ColStatus}"/>
+                        <ColumnDefinition Width="{StaticResource ColUser}"/>
+                        <ColumnDefinition Width="{StaticResource ColDel}"/>
                     </Grid.ColumnDefinitions>
 
+                    <!-- Заголовок центрируется в своей колонке — ровно как элемент строки -->
                     <TextBlock Grid.Column="2" Style="{StaticResource ColumnHeader}"
                                Text="{DynamicResource str_TaskBoard_ColTask}"/>
                     <TextBlock Grid.Column="3" Style="{StaticResource ColumnHeader}"
+                               HorizontalAlignment="Center"
                                Text="{DynamicResource str_TaskBoard_ColOurId}"/>
                     <TextBlock Grid.Column="4" Style="{StaticResource ColumnHeader}"
+                               HorizontalAlignment="Center"
                                Text="{DynamicResource str_TaskBoard_ColTracker}"/>
                     <TextBlock Grid.Column="5" Style="{StaticResource ColumnHeader}"
                                HorizontalAlignment="Center"
@@ -283,21 +308,22 @@
                                     DragOver="TaskRow_DragOver">
                                 <Grid>
                                     <Grid.ColumnDefinitions>
-                                        <ColumnDefinition Width="Auto" SharedSizeGroup="colDrag"/>
-                                        <ColumnDefinition Width="Auto" SharedSizeGroup="colCurrent"/>
+                                        <ColumnDefinition Width="{StaticResource ColDrag}"/>
+                                        <ColumnDefinition Width="{StaticResource ColCurrent}"/>
                                         <ColumnDefinition Width="*"/>
-                                        <ColumnDefinition Width="Auto" SharedSizeGroup="colOurId"/>
-                                        <ColumnDefinition Width="Auto" SharedSizeGroup="colTracker"/>
-                                        <ColumnDefinition Width="Auto" SharedSizeGroup="colStatus"/>
-                                        <ColumnDefinition Width="Auto" SharedSizeGroup="colUser"/>
-                                        <ColumnDefinition Width="Auto" SharedSizeGroup="colDel"/>
+                                        <ColumnDefinition Width="{StaticResource ColOurId}"/>
+                                        <ColumnDefinition Width="{StaticResource ColTracker}"/>
+                                        <ColumnDefinition Width="{StaticResource ColStatus}"/>
+                                        <ColumnDefinition Width="{StaticResource ColUser}"/>
+                                        <ColumnDefinition Width="{StaticResource ColDel}"/>
                                     </Grid.ColumnDefinitions>
 
                                     <!-- ⠿ ручка перетаскивания: тянешь строку — меняешь порядок -->
                                     <TextBlock Grid.Column="0" Text="⠿"
                                                ToolTip="{DynamicResource str_TaskBoard_DragHint}"
                                                FontSize="13" Cursor="SizeAll" Opacity="0.55"
-                                               VerticalAlignment="Top" Margin="0,4,8,0"
+                                               VerticalAlignment="Top" HorizontalAlignment="Center"
+                                               Margin="0,4,0,0"
                                                Foreground="{DynamicResource SecondaryForeground}"
                                                PreviewMouseLeftButtonDown="DragHandle_MouseDown"/>
 
@@ -309,7 +335,8 @@
                                                            RelativeSource={RelativeSource AncestorType=UserControl}}"
                                                  CommandParameter="{Binding}"
                                                  ToolTip="{DynamicResource str_TaskBoard_CurrentHint}"
-                                                 VerticalAlignment="Top" Margin="0,5,10,0"/>
+                                                 VerticalAlignment="Top" HorizontalAlignment="Center"
+                                                 Margin="0,5,0,0"/>
 
                                     <!-- Имя + описание (растёт до 2 строк, дальше свой скролл) -->
                                     <StackPanel Grid.Column="2" Margin="0,0,10,0">
@@ -337,11 +364,12 @@
 
                                     <!-- Наш № — порядковый номер строки. Не Id модели: она шлёт
                                          «step1»/«task-2», это внутренний ключ мержа, не для глаз. -->
-                                    <Border Grid.Column="3" VerticalAlignment="Top" Margin="0,0,10,0"
+                                    <Border Grid.Column="3" VerticalAlignment="Top"
+                                            HorizontalAlignment="Center" MinWidth="38"
                                             Background="{DynamicResource InputReadOnlyBackground}"
                                             BorderBrush="{DynamicResource InputBorder}"
                                             BorderThickness="1" CornerRadius="3"
-                                            Padding="6,3" MinWidth="44"
+                                            Padding="6,3"
                                             ToolTip="{DynamicResource str_TaskBoard_OurIdHint}">
                                         <TextBlock Text="{Binding Ordinal}" FontSize="12"
                                                    HorizontalAlignment="Center"
@@ -349,11 +377,11 @@
                                     </Border>
 
                                     <!-- Трекер (Jira) — идёт в маркеры кода -->
-                                    <Grid Grid.Column="4" VerticalAlignment="Top" Margin="0,0,10,0">
+                                    <Grid Grid.Column="4" VerticalAlignment="Top" Margin="4,0,4,0">
                                         <TextBox x:Name="TrackerBox" Style="{StaticResource TaskInput}"
                                                  Text="{Binding ExternalId, Mode=TwoWay, UpdateSourceTrigger=LostFocus}"
                                                  ToolTip="{DynamicResource str_TaskBoard_TrackerHint}"
-                                                 FontSize="12" MinWidth="92"/>
+                                                 FontSize="12"/>
                                         <TextBlock Text="{DynamicResource str_TaskBoard_TrackerPlaceholder}"
                                                    Margin="7,0,0,0" FontSize="11"
                                                    VerticalAlignment="Center" IsHitTestVisible="False"
@@ -364,7 +392,8 @@
                                     </Grid>
 
                                     <!-- Статус ИИ — клик перебирает -->
-                                    <Button Grid.Column="5" VerticalAlignment="Top" Margin="0,0,10,0"
+                                    <Button Grid.Column="5" VerticalAlignment="Top"
+                                            HorizontalAlignment="Center"
                                             Command="{Binding DataContext.CycleTaskStatusCommand,
                                                       RelativeSource={RelativeSource AncestorType=UserControl}}"
                                             CommandParameter="{Binding}"
@@ -380,7 +409,8 @@
                                     <CheckBox Grid.Column="6"
                                               IsChecked="{Binding UserDone, Mode=TwoWay}"
                                               ToolTip="{DynamicResource str_TaskBoard_UserDoneHint}"
-                                              VerticalAlignment="Top" Margin="8,5,10,0"/>
+                                              VerticalAlignment="Top" HorizontalAlignment="Center"
+                                              Margin="0,5,0,0"/>
 
                                     <Button Grid.Column="7"
                                             Command="{Binding DataContext.RemoveTaskCommand,
@@ -389,7 +419,7 @@
                                             Content="✕"
                                             ToolTip="{DynamicResource str_TaskBoard_RemoveHint}"
                                             Width="18" Height="18" Padding="0" VerticalAlignment="Top"
-                                            Margin="0,4,0,0"
+                                            HorizontalAlignment="Center" Margin="0,4,0,0"
                                             FontSize="10" Cursor="Hand"
                                             Background="Transparent" BorderThickness="0"
                                             Foreground="{DynamicResource SecondaryForeground}"/>
