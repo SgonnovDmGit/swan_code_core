@@ -1,5 +1,6 @@
 using System.Windows;
 using System.Windows.Controls;
+using System.Windows.Documents;
 using System.Windows.Input;
 using SwanCode.Core.Chat.Models;
 using SwanCode.Core.Chat.ViewModels;
@@ -21,30 +22,110 @@ namespace SwanCode.Core.Chat.Views
             InitializeComponent();
         }
 
+        // Визуал перетаскивания (T-000127): призрак строки под курсором + линия места вставки.
+        // Голый DoDragDrop не показывал ни что тянем, ни куда упадёт.
+        private DragGhostAdorner? _ghost;
+        private InsertionLineAdorner? _line;
+        private FrameworkElement? _lineRow;
+        private FrameworkElement? _sourceRow;
+
         private void DragHandle_MouseDown(object sender, MouseButtonEventArgs e)
         {
             if (sender is not FrameworkElement handle || handle.DataContext is not TaskItem item) return;
 
-            DragDrop.DoDragDrop(handle, item, DragDropEffects.Move);
+            _sourceRow = FindRow(handle);
+            ShowGhost(_sourceRow);
+            if (_sourceRow != null) _sourceRow.Opacity = 0.4;   // видно, откуда тянем
+
+            try
+            {
+                DragDrop.DoDragDrop(handle, item, DragDropEffects.Move);
+            }
+            finally
+            {
+                ClearAdorners();
+                if (_sourceRow != null) _sourceRow.Opacity = 1.0;
+                _sourceRow = null;
+            }
             e.Handled = true;
         }
 
         private void TaskRow_DragOver(object sender, DragEventArgs e)
         {
-            e.Effects = e.Data.GetDataPresent(typeof(TaskItem))
-                ? DragDropEffects.Move
-                : DragDropEffects.None;
+            var ok = e.Data.GetDataPresent(typeof(TaskItem));
+            e.Effects = ok ? DragDropEffects.Move : DragDropEffects.None;
             e.Handled = true;
+            if (!ok || sender is not FrameworkElement row) return;
+
+            _ghost?.SetPosition(e.GetPosition(this));
+
+            // Верхняя половина строки — ляжет перед ней, нижняя — после
+            ShowInsertionLine(row, InsertBefore(row, e));
         }
 
         private void TaskRow_Drop(object sender, DragEventArgs e)
         {
+            ClearAdorners();
+
             if (sender is not FrameworkElement row || row.DataContext is not TaskItem target) return;
             if (e.Data.GetData(typeof(TaskItem)) is not TaskItem dragged) return;
             if (DataContext is not ChatViewModelBase vm) return;
 
-            vm.MoveTask(dragged, target);
+            vm.MoveTask(dragged, target, InsertBefore(row, e));
             e.Handled = true;
+        }
+
+        private static bool InsertBefore(FrameworkElement row, DragEventArgs e) =>
+            e.GetPosition(row).Y < row.ActualHeight / 2;
+
+        private void ShowGhost(FrameworkElement? row)
+        {
+            if (row == null) return;
+            var layer = AdornerLayer.GetAdornerLayer(this);
+            if (layer == null) return;
+
+            _ghost = new DragGhostAdorner(this, row);
+            layer.Add(_ghost);
+        }
+
+        private void ShowInsertionLine(FrameworkElement row, bool atTop)
+        {
+            if (ReferenceEquals(_lineRow, row) && _line != null && _line.IsAtTop == atTop) return;
+
+            RemoveLine();
+            var layer = AdornerLayer.GetAdornerLayer(row);
+            if (layer == null) return;
+
+            _line = new InsertionLineAdorner(row, atTop);
+            _lineRow = row;
+            layer.Add(_line);
+        }
+
+        private void RemoveLine()
+        {
+            if (_line != null && _lineRow != null)
+                AdornerLayer.GetAdornerLayer(_lineRow)?.Remove(_line);
+            _line = null;
+            _lineRow = null;
+        }
+
+        private void ClearAdorners()
+        {
+            RemoveLine();
+            if (_ghost != null)
+                AdornerLayer.GetAdornerLayer(this)?.Remove(_ghost);
+            _ghost = null;
+        }
+
+        /// <summary>Border строки — родитель ручки ⠿ в визуальном дереве.</summary>
+        private static FrameworkElement? FindRow(DependencyObject? child)
+        {
+            while (child != null)
+            {
+                child = System.Windows.Media.VisualTreeHelper.GetParent(child);
+                if (child is Border b && b.DataContext is TaskItem) return b;
+            }
+            return null;
         }
     }
 }

@@ -145,6 +145,12 @@ namespace SwanCode.Core.Chat.ViewModels
         public ICommand NewChatCommand { get; }
         public ICommand InterruptCommand { get; }
 
+        /// <summary>
+        /// «→ в песочницу» на код-блоке ответа (T-000096). Базовый чат песочницы не знает —
+        /// продукт переопределяет. null (Universal) → кнопки на блоках не рисуются.
+        /// </summary>
+        public virtual ICommand? SendCodeToSandboxCommand => null;
+
         protected ChatViewModelBase(ApiClient api)
         {
             Api = api ?? throw new ArgumentNullException(nameof(api));
@@ -388,13 +394,25 @@ namespace SwanCode.Core.Chat.ViewModels
         /// Перестановка строки drag&amp;drop'ом. Ручной порядок — «родной» порядок коллекции;
         /// сортировка по статусу/трекеру его не рушит (это отдельный вид, см. TasksView).
         /// </summary>
-        public void MoveTask(TaskItem? dragged, TaskItem? target)
+        public void MoveTask(TaskItem? dragged, TaskItem? target) => MoveTask(dragged, target, false);
+
+        /// <param name="insertBefore">
+        /// Курсор в верхней половине целевой строки — значит бросили ПЕРЕД ней, иначе после.
+        /// Ровно то место, где при перетаскивании рисовалась линия вставки (T-000127).
+        /// </param>
+        public void MoveTask(TaskItem? dragged, TaskItem? target, bool insertBefore)
         {
             if (dragged == null || target == null || ReferenceEquals(dragged, target)) return;
 
             var from = TaskBoard.IndexOf(dragged);
             var to = TaskBoard.IndexOf(target);
             if (from < 0 || to < 0) return;
+
+            if (!insertBefore) to++;
+            if (from < to) to--;          // строка уезжает со своего места — индекс справа сдвигается
+            if (to < 0) to = 0;
+            if (to >= TaskBoard.Count) to = TaskBoard.Count - 1;
+            if (from == to) return;
 
             TaskBoard.Move(from, to);
         }

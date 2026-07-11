@@ -293,7 +293,11 @@
                             Visibility="{Binding Content, Converter={StaticResource EmptyToVis}, ConverterParameter=invert}">
                         <StackPanel>
                             <!-- Content: markdown-рендер (T-000103) -->
+                            <!-- CodeBlockCommand: кнопка «→ в песочницу» на код-блоках (T-000096).
+                                 У Universal команды нет — кнопки просто не рисуются. -->
                             <RichTextBox helpers:MarkdownBehavior.Markdown="{Binding Content}"
+                                         helpers:MarkdownBehavior.CodeBlockCommand="{Binding DataContext.SendCodeToSandboxCommand,
+                                                   RelativeSource={RelativeSource AncestorType=ItemsControl}}"
                                          IsReadOnly="True"
                                          IsReadOnlyCaretVisible="False"
                                          IsDocumentEnabled="True"

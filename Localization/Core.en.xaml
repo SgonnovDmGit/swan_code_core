@@ -82,6 +82,12 @@
     <sys:String x:Key="str_Chat_InfoTime">time</sys:String>
 
     <!-- Task board (T-000080..T-000082, REQ-021) -->
+    <!-- AI answer code block (T-000096) -->
+    <sys:String x:Key="str_Chat_CopyCode">Copy</sys:String>
+    <sys:String x:Key="str_Chat_CopyCodeHint">Copy the fragment to the clipboard</sys:String>
+    <sys:String x:Key="str_Chat_ToSandbox">→ to sandbox</sys:String>
+    <sys:String x:Key="str_Chat_ToSandboxHint">Put this fragment into the sandbox — from there it can be applied to the configurator window</sys:String>
+
     <!-- Context compaction (ANNOUNCE-005) -->
     <sys:String x:Key="str_Chat_ContextCompacted">Context compacted — earlier history is summarized below</sys:String>
 

@@ -5,6 +5,7 @@ using System.Text.RegularExpressions;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Documents;
+using System.Windows.Input;
 using System.Windows.Media;
 
 namespace SwanCode.Core.Helpers
@@ -17,7 +18,14 @@ namespace SwanCode.Core.Helpers
     /// </summary>
     public static class MarkdownRenderer
     {
-        public static FlowDocument Render(string? markdown)
+        public static FlowDocument Render(string? markdown) => Render(markdown, null);
+
+        /// <param name="codeBlockCommand">
+        /// Команда «положить фрагмент в песочницу» (T-000096). Если задана — у каждого
+        /// код-блока появляется кнопка, параметр команды = текст блока. null (Universal,
+        /// где песочницы нет) — блоки рендерятся как раньше.
+        /// </param>
+        public static FlowDocument Render(string? markdown, ICommand? codeBlockCommand)
         {
             var doc = new FlowDocument
             {
@@ -52,7 +60,8 @@ namespace SwanCode.Core.Helpers
                         codeLines.Add(lines[i]);
                         i++;
                     }
-                    doc.Blocks.Add(BuildCodeBlock(string.Join("\n", codeLines)));
+                    var code = string.Join("\n", codeLines);
+                    doc.Blocks.Add(BuildCodeBlockWithActions(code, codeBlockCommand));
                     continue;
                 }
 
@@ -234,6 +243,151 @@ namespace SwanCode.Core.Helpers
             return para;
         }
 
+        /// <summary>
+        /// Код-блок с кнопками «Копировать» и «→ в песочницу» (T-000096). Код лежит в read-only
+        /// TextBox: так он выделяется отдельно от текста ответа и живёт рядом с кнопками.
+        /// «Копировать» есть всегда; «в песочницу» — только если продукт дал команду.
+        /// </summary>
+        private static BlockUIContainer BuildCodeBlockWithActions(string code, ICommand? sandboxCommand)
+        {
+            var codeBox = new TextBox
+            {
+                Text = code,
+                IsReadOnly = true,
+                BorderThickness = new Thickness(0),
+                Background = System.Windows.Media.Brushes.Transparent,
+                FontFamily = new FontFamily("Consolas"),
+                FontSize = 12,
+                Padding = new Thickness(10, 8, 10, 8),
+                TextWrapping = TextWrapping.NoWrap,
+                HorizontalScrollBarVisibility = ScrollBarVisibility.Auto,
+                MaxHeight = 320
+            };
+            codeBox.SetResourceReference(Control.ForegroundProperty, "PrimaryForeground");
+
+            var bar = new StackPanel
+            {
+                Orientation = Orientation.Horizontal,
+                HorizontalAlignment = HorizontalAlignment.Right,
+                VerticalAlignment = VerticalAlignment.Top,
+                Margin = new Thickness(0, 4, 6, 0)
+            };
+
+            bar.Children.Add(MakeCopyButton(code));
+
+            if (sandboxCommand != null)
+                bar.Children.Add(MakeCodeButton(
+                    FindString("str_Chat_ToSandbox", "→ в песочницу"),
+                    FindString("str_Chat_ToSandboxHint", "Положить фрагмент в песочницу"),
+                    () =>
+                    {
+                        if (sandboxCommand.CanExecute(code)) sandboxCommand.Execute(code);
+                    }));
+
+            var grid = new Grid();
+            grid.Children.Add(codeBox);
+            grid.Children.Add(bar);
+
+            var border = new Border
+            {
+                BorderThickness = new Thickness(2, 0, 0, 0),
+                Margin = new Thickness(0, 2, 0, 8),
+                Child = grid
+            };
+            border.SetResourceReference(Border.BackgroundProperty, "CodeBackground");
+            border.SetResourceReference(Border.BorderBrushProperty, "CodeBorder");
+
+            return new BlockUIContainer(border) { Margin = new Thickness(0) };
+        }
+
+        // Иконки: тот же контур, что у кнопки копирования под сообщением — глаз к нему уже привык
+        private const string CopyIconPath =
+            "M8 3h11a1 1 0 0 1 1 1v13h-2V5H8V3zM4 7h11a1 1 0 0 1 1 1v12a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V8a1 1 0 0 1 1-1zm1 2v10h9V9H5z";
+        private const string CheckIconPath = "M9 16.2 4.8 12l-1.4 1.4L9 19 21 7l-1.4-1.4z";
+
+        /// <summary>
+        /// Копирование фрагмента: иконка вместо подписи, после клика — галочка на 30 секунд,
+        /// чтобы было видно, что скопировалось (просьба юзера 12.07).
+        /// </summary>
+        private static Button MakeCopyButton(string code)
+        {
+            System.Windows.Threading.DispatcherTimer? timer = null;
+            Button? button = null;
+
+            // ВАЖНО: обработчик ровно один. Второй += на том же элементе не вызовется —
+            // первый уже пометил событие Handled (из-за этого галочка не появлялась, 12.07).
+            button = MakeCodeButton(
+                MakeIcon(CopyIconPath, "SecondaryForeground"),
+                FindString("str_Chat_CopyCodeHint", "Скопировать фрагмент в буфер обмена"),
+                () =>
+                {
+                    try { Clipboard.SetText(code); }
+                    catch { return; /* буфер занят другим процессом */ }
+
+                    button!.Content = MakeIcon(CheckIconPath, "SuccessColor");
+
+                    timer?.Stop();
+                    timer = new System.Windows.Threading.DispatcherTimer
+                    {
+                        Interval = TimeSpan.FromSeconds(30)
+                    };
+                    timer.Tick += (_, _) =>
+                    {
+                        timer!.Stop();
+                        button!.Content = MakeIcon(CopyIconPath, "SecondaryForeground");
+                    };
+                    timer.Start();
+                });
+
+            return button;
+        }
+
+        private static System.Windows.Shapes.Path MakeIcon(string data, string brushKey)
+        {
+            var path = new System.Windows.Shapes.Path
+            {
+                Width = 13,
+                Height = 13,
+                Stretch = Stretch.Uniform,
+                Data = Geometry.Parse(data)
+            };
+            path.SetResourceReference(System.Windows.Shapes.Shape.FillProperty, brushKey);
+            return path;
+        }
+
+        /// <summary>
+        /// Кнопка внутри код-блока. Действие висит на PreviewMouseLeftButtonDown, а не на Click:
+        /// в read-only RichTextBox первый клик забирает слой выделения текста (ставит каретку),
+        /// и до кнопки он не доходит — она срабатывала лишь со второго раза (замер 12.07).
+        /// </summary>
+        private static Button MakeCodeButton(object? content, string tooltip, Action action)
+        {
+            var button = new Button
+            {
+                Content = content,
+                ToolTip = tooltip,
+                FontSize = 10,
+                Padding = new Thickness(7, 2, 7, 2),
+                Margin = new Thickness(6, 0, 0, 0),
+                Cursor = System.Windows.Input.Cursors.Hand,
+                BorderThickness = new Thickness(1),
+                Focusable = false
+            };
+            button.SetResourceReference(Control.BackgroundProperty, "SecondaryBackground");
+            button.SetResourceReference(Control.BorderBrushProperty, "BorderColor");
+            button.SetResourceReference(Control.ForegroundProperty, "AccentColor");
+
+            button.PreviewMouseLeftButtonDown += (_, e) =>
+            {
+                action();
+                e.Handled = true;
+            };
+            return button;
+        }
+
+        private static string FindString(string key, string fallback) =>
+            Application.Current?.TryFindResource(key) as string ?? fallback;
+
         private static Paragraph BuildRule()
         {
             var para = new Paragraph
@@ -368,7 +522,15 @@ namespace SwanCode.Core.Helpers
         public static readonly DependencyProperty MarkdownProperty =
             DependencyProperty.RegisterAttached(
                 "Markdown", typeof(string), typeof(MarkdownBehavior),
-                new PropertyMetadata(null, OnMarkdownChanged));
+                new PropertyMetadata(null, OnRenderInputChanged));
+
+        /// <summary>
+        /// Команда для кнопки «→ в песочницу» на код-блоках (T-000096). Не задана — кнопок нет.
+        /// </summary>
+        public static readonly DependencyProperty CodeBlockCommandProperty =
+            DependencyProperty.RegisterAttached(
+                "CodeBlockCommand", typeof(ICommand), typeof(MarkdownBehavior),
+                new PropertyMetadata(null, OnRenderInputChanged));
 
         public static void SetMarkdown(DependencyObject element, string? value) =>
             element.SetValue(MarkdownProperty, value);
@@ -376,10 +538,16 @@ namespace SwanCode.Core.Helpers
         public static string? GetMarkdown(DependencyObject element) =>
             (string?)element.GetValue(MarkdownProperty);
 
-        private static void OnMarkdownChanged(DependencyObject d, DependencyPropertyChangedEventArgs e)
+        public static void SetCodeBlockCommand(DependencyObject element, ICommand? value) =>
+            element.SetValue(CodeBlockCommandProperty, value);
+
+        public static ICommand? GetCodeBlockCommand(DependencyObject element) =>
+            (ICommand?)element.GetValue(CodeBlockCommandProperty);
+
+        private static void OnRenderInputChanged(DependencyObject d, DependencyPropertyChangedEventArgs e)
         {
-            if (d is RichTextBox rtb)
-                rtb.Document = MarkdownRenderer.Render(e.NewValue as string);
+            if (d is not RichTextBox rtb) return;
+            rtb.Document = MarkdownRenderer.Render(GetMarkdown(rtb), GetCodeBlockCommand(rtb));
         }
     }
 }
