@@ -48,6 +48,10 @@
     <SolidColorBrush x:Key="ReasoningForeground" Color="#FFD83D"/>
     <SolidColorBrush x:Key="ReasoningBackground" Color="#14FFD83D"/>
     <SolidColorBrush x:Key="ReasoningBorder" Color="#40FFD83D"/>
+    <!-- Поля ввода (T-000082) — темнее панели, «вдавленные» -->
+    <SolidColorBrush x:Key="InputBackground" Color="#0D141B"/>
+    <SolidColorBrush x:Key="InputBorder" Color="#3A4A59"/>
+    <SolidColorBrush x:Key="InputReadOnlyBackground" Color="#101821"/>
     <SolidColorBrush x:Key="ToolCardBackground" Color="#151C24"/>
     <SolidColorBrush x:Key="ToolCardBorder" Color="#2A3642"/>
     <SolidColorBrush x:Key="SuccessColor" Color="#3FB68B"/>

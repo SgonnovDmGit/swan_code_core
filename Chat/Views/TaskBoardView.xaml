@@ -3,55 +3,85 @@
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:helpers="clr-namespace:SwanCode.Core.Helpers"
              mc:Ignorable="d"
-             d:DesignHeight="220" d:DesignWidth="480"
-             Background="{DynamicResource PrimaryBackground}">
+             d:DesignHeight="240" d:DesignWidth="700">
 
-    <!-- T-000076: визуальная заготовка доски задач.
-         Dummy-данные хардкодом, без биндингов к VM — подключение в v0.14.0. -->
+    <!-- T-000082 (REQ-021). Доска задач: ведёт AI тулом task_board_update, но полностью
+         управляема руками. Мокап-ТЗ: docs/mockups/2026-07-11-taskboard-fields.html (вариант A).
+         Колонки: ⠿ порядок → ● текущая → задача+описание → наш № → трекер → статус ИИ → принял → ✕.
+         Видимость ставит хост (ChatView): StaticResource на собственном атрибуте корня
+         резолвится раньше, чем разбирается UserControl.Resources. -->
 
     <UserControl.Resources>
-        <!-- Строка таблицы: компактная, с нижним бордером -->
-        <Style x:Key="TaskRowBorder" TargetType="Border">
-            <Setter Property="BorderBrush" Value="{DynamicResource BorderColor}"/>
-            <Setter Property="BorderThickness" Value="0,0,0,1"/>
-            <Setter Property="Padding" Value="8,5"/>
-        </Style>
+        <helpers:BoolToVisibilityConverter x:Key="BoolToVisibilityTb"/>
+        <helpers:EmptyStringToVisibilityConverter x:Key="EmptyToVisTb"/>
 
-        <!-- Текст задачи -->
-        <Style x:Key="TaskText" TargetType="TextBlock">
-            <Setter Property="FontSize" Value="12"/>
+        <!-- Поля ввода: своя кисть InputBackground. Красить их в Primary/Secondary/Tertiary нельзя —
+             в теме 1С все три равны #F5F2DD, поле сливалось с панелью (смок 11.07). -->
+        <Style x:Key="TaskInput" TargetType="TextBox">
+            <Setter Property="Background" Value="{DynamicResource InputBackground}"/>
+            <Setter Property="BorderBrush" Value="{DynamicResource InputBorder}"/>
+            <Setter Property="BorderThickness" Value="1"/>
+            <Setter Property="Padding" Value="5,2"/>
+            <Setter Property="VerticalContentAlignment" Value="Center"/>
             <Setter Property="Foreground" Value="{DynamicResource PrimaryForeground}"/>
-            <Setter Property="VerticalAlignment" Value="Center"/>
-            <Setter Property="TextTrimming" Value="CharacterEllipsis"/>
         </Style>
 
-        <!-- Внешний id -->
-        <Style x:Key="TaskExternalId" TargetType="TextBlock">
-            <Setter Property="FontSize" Value="12"/>
+        <Style x:Key="ColumnHeader" TargetType="TextBlock">
+            <Setter Property="FontSize" Value="9"/>
+            <Setter Property="FontWeight" Value="SemiBold"/>
             <Setter Property="Foreground" Value="{DynamicResource SecondaryForeground}"/>
             <Setter Property="VerticalAlignment" Value="Center"/>
-            <Setter Property="Margin" Value="8,0"/>
         </Style>
 
-        <!-- Чип статуса AI: цвет текста задаётся на месте -->
+        <Style x:Key="ModeButton" TargetType="Button">
+            <Setter Property="FontSize" Value="10"/>
+            <Setter Property="Padding" Value="7,2"/>
+            <Setter Property="Margin" Value="0,0,3,0"/>
+            <Setter Property="Cursor" Value="Hand"/>
+            <Setter Property="Background" Value="Transparent"/>
+            <Setter Property="BorderBrush" Value="{DynamicResource BorderColor}"/>
+            <Setter Property="BorderThickness" Value="1"/>
+            <Setter Property="Foreground" Value="{DynamicResource SecondaryForeground}"/>
+        </Style>
+
+        <!-- Чип статуса ИИ: цветом красится и рамка, и текст -->
         <Style x:Key="StatusChipBorder" TargetType="Border">
             <Setter Property="Background" Value="{DynamicResource ToolCardBackground}"/>
-            <Setter Property="BorderBrush" Value="{DynamicResource ToolCardBorder}"/>
+            <Setter Property="BorderBrush" Value="{DynamicResource BorderColor}"/>
             <Setter Property="BorderThickness" Value="1"/>
-            <Setter Property="CornerRadius" Value="4"/>
-            <Setter Property="Padding" Value="6,1"/>
-            <Setter Property="VerticalAlignment" Value="Center"/>
-            <Setter Property="HorizontalAlignment" Value="Left"/>
-        </Style>
-        <Style x:Key="StatusChipText" TargetType="TextBlock">
-            <Setter Property="FontSize" Value="11"/>
-            <Setter Property="VerticalAlignment" Value="Center"/>
+            <Setter Property="CornerRadius" Value="10"/>
+            <Setter Property="Padding" Value="8,3"/>
+            <Setter Property="MinWidth" Value="96"/>
+            <Style.Triggers>
+                <DataTrigger Binding="{Binding Status}" Value="done">
+                    <Setter Property="BorderBrush" Value="{DynamicResource SuccessColor}"/>
+                </DataTrigger>
+                <DataTrigger Binding="{Binding Status}" Value="in_progress">
+                    <Setter Property="BorderBrush" Value="{DynamicResource AccentColor}"/>
+                </DataTrigger>
+                <DataTrigger Binding="{Binding Status}" Value="blocked">
+                    <Setter Property="BorderBrush" Value="{DynamicResource ErrorColor}"/>
+                </DataTrigger>
+            </Style.Triggers>
         </Style>
 
-        <Style x:Key="TaskCheckBox" TargetType="CheckBox">
-            <Setter Property="VerticalAlignment" Value="Center"/>
-            <Setter Property="Margin" Value="0,0,8,0"/>
+        <Style x:Key="StatusChipText" TargetType="TextBlock">
+            <Setter Property="FontSize" Value="11"/>
+            <Setter Property="HorizontalAlignment" Value="Center"/>
+            <Setter Property="Foreground" Value="{DynamicResource SecondaryForeground}"/>
+            <Style.Triggers>
+                <DataTrigger Binding="{Binding Status}" Value="done">
+                    <Setter Property="Foreground" Value="{DynamicResource SuccessColor}"/>
+                </DataTrigger>
+                <DataTrigger Binding="{Binding Status}" Value="in_progress">
+                    <Setter Property="Foreground" Value="{DynamicResource AccentColor}"/>
+                </DataTrigger>
+                <DataTrigger Binding="{Binding Status}" Value="blocked">
+                    <Setter Property="Foreground" Value="{DynamicResource ErrorColor}"/>
+                </DataTrigger>
+            </Style.Triggers>
         </Style>
     </UserControl.Resources>
 
@@ -59,112 +89,305 @@
             BorderBrush="{DynamicResource BorderColor}"
             BorderThickness="1"
             CornerRadius="6">
-        <Grid Grid.IsSharedSizeScope="True">
-            <Grid.RowDefinitions>
-                <RowDefinition Height="Auto"/>
-                <RowDefinition Height="Auto"/>
-                <RowDefinition Height="Auto"/>
-                <RowDefinition Height="Auto"/>
-                <RowDefinition Height="Auto"/>
-                <RowDefinition Height="*"/>
-            </Grid.RowDefinitions>
-
-            <!-- Заголовок панели -->
-            <Border Grid.Row="0"
+        <DockPanel>
+            <!-- Шапка: ЗАДАЧИ | режимы | счётчик + свернуть -->
+            <Border DockPanel.Dock="Top"
                     Background="{DynamicResource TertiaryBackground}"
                     BorderBrush="{DynamicResource BorderColor}"
                     BorderThickness="0,0,0,1"
+                    Padding="8,4" CornerRadius="6,6,0,0">
+                <DockPanel>
+                    <TextBlock Text="{DynamicResource str_TaskBoard_Title}"
+                               FontSize="13" FontWeight="Bold" VerticalAlignment="Center"
+                               Margin="0,0,14,0"
+                               Foreground="{DynamicResource PrimaryForeground}"/>
+
+                    <!-- Свернуть всю доску -->
+                    <Button DockPanel.Dock="Right"
+                            Command="{Binding ToggleTaskBoardCommand}"
+                            ToolTip="{DynamicResource str_TaskBoard_Toggle}"
+                            Background="Transparent" BorderThickness="0" Cursor="Hand"
+                            Padding="4,0" FontSize="10"
+                            Foreground="{DynamicResource SecondaryForeground}">
+                        <Button.Style>
+                            <Style TargetType="Button">
+                                <Setter Property="Content" Value="▾"/>
+                                <Style.Triggers>
+                                    <DataTrigger Binding="{Binding IsTaskBoardExpanded}" Value="False">
+                                        <Setter Property="Content" Value="▸"/>
+                                    </DataTrigger>
+                                </Style.Triggers>
+                            </Style>
+                        </Button.Style>
+                    </Button>
+
+                    <TextBlock DockPanel.Dock="Right"
+                               Text="{Binding TaskBoardSummary}"
+                               VerticalAlignment="Center" Margin="0,0,8,0"
+                               FontSize="10"
+                               Foreground="{DynamicResource SecondaryForeground}"/>
+
+                    <!-- Режимы развёртки: доска не должна съедать чат -->
+                    <StackPanel Orientation="Horizontal"
+                                Visibility="{Binding IsTaskBoardExpanded, Converter={StaticResource BoolToVisibilityTb}}">
+                        <Button Style="{StaticResource ModeButton}"
+                                Content="{DynamicResource str_TaskBoard_ModeCurrent}"
+                                Command="{Binding SetBoardModeCommand}" CommandParameter="current">
+                            <Button.Resources>
+                                <Style TargetType="Border">
+                                    <Setter Property="CornerRadius" Value="4"/>
+                                </Style>
+                            </Button.Resources>
+                        </Button>
+                        <Button Style="{StaticResource ModeButton}"
+                                Content="{DynamicResource str_TaskBoard_ModeThree}"
+                                Command="{Binding SetBoardModeCommand}" CommandParameter="three"/>
+                        <Button Style="{StaticResource ModeButton}"
+                                Content="{DynamicResource str_TaskBoard_ModeAll}"
+                                Command="{Binding SetBoardModeCommand}" CommandParameter="all"/>
+                    </StackPanel>
+                </DockPanel>
+            </Border>
+
+            <!-- Ручное добавление -->
+            <Border DockPanel.Dock="Bottom"
+                    BorderBrush="{DynamicResource BorderColor}" BorderThickness="0,1,0,0"
+                    Padding="8,4"
+                    Visibility="{Binding IsTaskBoardExpanded, Converter={StaticResource BoolToVisibilityTb}}">
+                <Button Command="{Binding AddTaskCommand}"
+                        Content="{DynamicResource str_TaskBoard_Add}"
+                        ToolTip="{DynamicResource str_TaskBoard_AddHint}"
+                        HorizontalAlignment="Left"
+                        Background="Transparent" BorderThickness="0" Cursor="Hand"
+                        FontSize="11" Padding="0"
+                        Foreground="{DynamicResource AccentColor}"/>
+            </Border>
+
+            <!-- Пустое состояние -->
+            <TextBlock DockPanel.Dock="Bottom"
+                       Text="{DynamicResource str_TaskBoard_Empty}"
+                       Margin="8,6" FontSize="11" TextWrapping="Wrap"
+                       Foreground="{DynamicResource SecondaryForeground}">
+                <TextBlock.Style>
+                    <Style TargetType="TextBlock">
+                        <Setter Property="Visibility" Value="Collapsed"/>
+                        <Style.Triggers>
+                            <MultiDataTrigger>
+                                <MultiDataTrigger.Conditions>
+                                    <Condition Binding="{Binding TaskBoard.Count}" Value="0"/>
+                                    <Condition Binding="{Binding IsTaskBoardExpanded}" Value="True"/>
+                                </MultiDataTrigger.Conditions>
+                                <Setter Property="Visibility" Value="Visible"/>
+                            </MultiDataTrigger>
+                        </Style.Triggers>
+                    </Style>
+                </TextBlock.Style>
+            </TextBlock>
+
+            <!-- Поиск + сортировка: только в режиме «все» и только когда задач правда много -->
+            <Border DockPanel.Dock="Top"
+                    BorderBrush="{DynamicResource BorderColor}" BorderThickness="0,0,0,1"
                     Padding="8,5"
-                    CornerRadius="6,6,0,0">
-                <TextBlock Text="ЗАДАЧИ"
-                           FontSize="10"
-                           FontWeight="SemiBold"
-                           Foreground="{DynamicResource SecondaryForeground}"/>
+                    Visibility="{Binding IsFilterBarVisible, Converter={StaticResource BoolToVisibilityTb}}">
+                <DockPanel>
+                    <ComboBox DockPanel.Dock="Right" Width="150" FontSize="11" Margin="8,0,0,0"
+                              SelectedValuePath="Tag"
+                              SelectedValue="{Binding TaskSort, Mode=TwoWay}">
+                        <ComboBoxItem Tag="manual"  Content="{DynamicResource str_TaskBoard_SortManual}"/>
+                        <ComboBoxItem Tag="status"  Content="{DynamicResource str_TaskBoard_SortStatus}"/>
+                        <ComboBoxItem Tag="tracker" Content="{DynamicResource str_TaskBoard_SortTracker}"/>
+                    </ComboBox>
+                    <Grid>
+                        <TextBox x:Name="FilterBox" Style="{StaticResource TaskInput}" FontSize="11"
+                                 Text="{Binding TaskFilter, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"/>
+                        <TextBlock Text="{DynamicResource str_TaskBoard_SearchPlaceholder}"
+                                   Margin="7,0,0,0" FontSize="11" VerticalAlignment="Center"
+                                   IsHitTestVisible="False" Opacity="0.6"
+                                   Foreground="{DynamicResource SecondaryForeground}"
+                                   Visibility="{Binding Text, ElementName=FilterBox,
+                                                Converter={StaticResource EmptyToVisTb}}"/>
+                    </Grid>
+                </DockPanel>
             </Border>
 
-            <!-- Строка 1: выполнено -->
-            <Border Grid.Row="1" Style="{StaticResource TaskRowBorder}">
+            <!-- Шапка колонок -->
+            <Border DockPanel.Dock="Top"
+                    BorderBrush="{DynamicResource BorderColor}" BorderThickness="0,0,0,1"
+                    Padding="8,3"
+                    Visibility="{Binding IsTaskBoardExpanded, Converter={StaticResource BoolToVisibilityTb}}">
                 <Grid>
                     <Grid.ColumnDefinitions>
-                        <ColumnDefinition Width="Auto" SharedSizeGroup="colCheck"/>
+                        <ColumnDefinition Width="Auto" SharedSizeGroup="colDrag"/>
+                        <ColumnDefinition Width="Auto" SharedSizeGroup="colCurrent"/>
                         <ColumnDefinition Width="*"/>
-                        <ColumnDefinition Width="Auto" SharedSizeGroup="colId"/>
+                        <ColumnDefinition Width="Auto" SharedSizeGroup="colOurId"/>
+                        <ColumnDefinition Width="Auto" SharedSizeGroup="colTracker"/>
                         <ColumnDefinition Width="Auto" SharedSizeGroup="colStatus"/>
+                        <ColumnDefinition Width="Auto" SharedSizeGroup="colUser"/>
+                        <ColumnDefinition Width="Auto" SharedSizeGroup="colDel"/>
                     </Grid.ColumnDefinitions>
-                    <CheckBox Grid.Column="0" Style="{StaticResource TaskCheckBox}" IsChecked="True"/>
-                    <TextBlock Grid.Column="1" Style="{StaticResource TaskText}"
-                               Text="Прочитать модуль РаботаСБанками"/>
-                    <TextBlock Grid.Column="2" Style="{StaticResource TaskExternalId}" Text="T-343434"/>
-                    <Border Grid.Column="3" Style="{StaticResource StatusChipBorder}">
-                        <TextBlock Style="{StaticResource StatusChipText}"
-                                   Text="выполнено"
-                                   Foreground="{DynamicResource SuccessColor}"/>
-                    </Border>
+
+                    <TextBlock Grid.Column="2" Style="{StaticResource ColumnHeader}"
+                               Text="{DynamicResource str_TaskBoard_ColTask}"/>
+                    <TextBlock Grid.Column="3" Style="{StaticResource ColumnHeader}"
+                               Text="{DynamicResource str_TaskBoard_ColOurId}"/>
+                    <TextBlock Grid.Column="4" Style="{StaticResource ColumnHeader}"
+                               Text="{DynamicResource str_TaskBoard_ColTracker}"/>
+                    <TextBlock Grid.Column="5" Style="{StaticResource ColumnHeader}"
+                               HorizontalAlignment="Center"
+                               Text="{DynamicResource str_TaskBoard_ColStatus}"/>
+                    <TextBlock Grid.Column="6" Style="{StaticResource ColumnHeader}"
+                               HorizontalAlignment="Center"
+                               Text="{DynamicResource str_TaskBoard_ColUser}"/>
                 </Grid>
             </Border>
 
-            <!-- Строка 2: в работе -->
-            <Border Grid.Row="2" Style="{StaticResource TaskRowBorder}">
-                <Grid>
-                    <Grid.ColumnDefinitions>
-                        <ColumnDefinition Width="Auto" SharedSizeGroup="colCheck"/>
-                        <ColumnDefinition Width="*"/>
-                        <ColumnDefinition Width="Auto" SharedSizeGroup="colId"/>
-                        <ColumnDefinition Width="Auto" SharedSizeGroup="colStatus"/>
-                    </Grid.ColumnDefinitions>
-                    <CheckBox Grid.Column="0" Style="{StaticResource TaskCheckBox}"/>
-                    <TextBlock Grid.Column="1" Style="{StaticResource TaskText}"
-                               Text="Добавить проверку счёта"/>
-                    <TextBlock Grid.Column="2" Style="{StaticResource TaskExternalId}" Text="—"/>
-                    <Border Grid.Column="3" Style="{StaticResource StatusChipBorder}">
-                        <TextBlock Style="{StaticResource StatusChipText}"
-                                   Text="в работе"
-                                   Foreground="{DynamicResource AccentColor}"/>
-                    </Border>
-                </Grid>
-            </Border>
+            <!-- Строки. Высота — по режиму: current (без ограничения, строка одна),
+                 three (~3 строки), all (не больше половины чата). -->
+            <ScrollViewer x:Name="RowsScroll"
+                          VerticalScrollBarVisibility="Auto"
+                          Visibility="{Binding IsTaskBoardExpanded, Converter={StaticResource BoolToVisibilityTb}}">
+                <ScrollViewer.Style>
+                    <Style TargetType="ScrollViewer">
+                        <Setter Property="MaxHeight" Value="190"/>
+                        <Style.Triggers>
+                            <DataTrigger Binding="{Binding IsBoardModeAll}" Value="True">
+                                <Setter Property="MaxHeight" Value="360"/>
+                            </DataTrigger>
+                            <DataTrigger Binding="{Binding IsBoardModeCurrent}" Value="True">
+                                <Setter Property="MaxHeight" Value="Infinity"/>
+                            </DataTrigger>
+                        </Style.Triggers>
+                    </Style>
+                </ScrollViewer.Style>
 
-            <!-- Строка 3: ожидает -->
-            <Border Grid.Row="3" Style="{StaticResource TaskRowBorder}">
-                <Grid>
-                    <Grid.ColumnDefinitions>
-                        <ColumnDefinition Width="Auto" SharedSizeGroup="colCheck"/>
-                        <ColumnDefinition Width="*"/>
-                        <ColumnDefinition Width="Auto" SharedSizeGroup="colId"/>
-                        <ColumnDefinition Width="Auto" SharedSizeGroup="colStatus"/>
-                    </Grid.ColumnDefinitions>
-                    <CheckBox Grid.Column="0" Style="{StaticResource TaskCheckBox}"/>
-                    <TextBlock Grid.Column="1" Style="{StaticResource TaskText}"
-                               Text="Прогнать синтакс-контроль"/>
-                    <TextBlock Grid.Column="2" Style="{StaticResource TaskExternalId}" Text="—"/>
-                    <Border Grid.Column="3" Style="{StaticResource StatusChipBorder}">
-                        <TextBlock Style="{StaticResource StatusChipText}"
-                                   Text="ожидает"
-                                   Foreground="{DynamicResource SecondaryForeground}"/>
-                    </Border>
-                </Grid>
-            </Border>
+                <ItemsControl ItemsSource="{Binding TasksView}" Grid.IsSharedSizeScope="True">
+                    <ItemsControl.ItemTemplate>
+                        <DataTemplate>
+                            <!-- Строка — drop-цель перетаскивания (порядок задач) -->
+                            <Border Background="Transparent"
+                                    BorderBrush="{DynamicResource BorderColor}"
+                                    BorderThickness="0,0,0,1"
+                                    Padding="8,6"
+                                    AllowDrop="True"
+                                    Drop="TaskRow_Drop"
+                                    DragOver="TaskRow_DragOver">
+                                <Grid>
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="Auto" SharedSizeGroup="colDrag"/>
+                                        <ColumnDefinition Width="Auto" SharedSizeGroup="colCurrent"/>
+                                        <ColumnDefinition Width="*"/>
+                                        <ColumnDefinition Width="Auto" SharedSizeGroup="colOurId"/>
+                                        <ColumnDefinition Width="Auto" SharedSizeGroup="colTracker"/>
+                                        <ColumnDefinition Width="Auto" SharedSizeGroup="colStatus"/>
+                                        <ColumnDefinition Width="Auto" SharedSizeGroup="colUser"/>
+                                        <ColumnDefinition Width="Auto" SharedSizeGroup="colDel"/>
+                                    </Grid.ColumnDefinitions>
 
-            <!-- Строка 4: ожидает -->
-            <Border Grid.Row="4" Style="{StaticResource TaskRowBorder}">
-                <Grid>
-                    <Grid.ColumnDefinitions>
-                        <ColumnDefinition Width="Auto" SharedSizeGroup="colCheck"/>
-                        <ColumnDefinition Width="*"/>
-                        <ColumnDefinition Width="Auto" SharedSizeGroup="colId"/>
-                        <ColumnDefinition Width="Auto" SharedSizeGroup="colStatus"/>
-                    </Grid.ColumnDefinitions>
-                    <CheckBox Grid.Column="0" Style="{StaticResource TaskCheckBox}"/>
-                    <TextBlock Grid.Column="1" Style="{StaticResource TaskText}"
-                               Text="Обновить обработку выгрузки платёжек"/>
-                    <TextBlock Grid.Column="2" Style="{StaticResource TaskExternalId}" Text="T-343511"/>
-                    <Border Grid.Column="3" Style="{StaticResource StatusChipBorder}">
-                        <TextBlock Style="{StaticResource StatusChipText}"
-                                   Text="ожидает"
-                                   Foreground="{DynamicResource SecondaryForeground}"/>
-                    </Border>
-                </Grid>
-            </Border>
-        </Grid>
+                                    <!-- ⠿ ручка перетаскивания: тянешь строку — меняешь порядок -->
+                                    <TextBlock Grid.Column="0" Text="⠿"
+                                               ToolTip="{DynamicResource str_TaskBoard_DragHint}"
+                                               FontSize="13" Cursor="SizeAll" Opacity="0.55"
+                                               VerticalAlignment="Top" Margin="0,4,8,0"
+                                               Foreground="{DynamicResource SecondaryForeground}"
+                                               PreviewMouseLeftButtonDown="DragHandle_MouseDown"/>
+
+                                    <!-- ● текущая: её трекер идёт в маркеры кода -->
+                                    <RadioButton Grid.Column="1"
+                                                 GroupName="CurrentTask"
+                                                 IsChecked="{Binding IsCurrent, Mode=OneWay}"
+                                                 Command="{Binding DataContext.SetCurrentTaskCommand,
+                                                           RelativeSource={RelativeSource AncestorType=UserControl}}"
+                                                 CommandParameter="{Binding}"
+                                                 ToolTip="{DynamicResource str_TaskBoard_CurrentHint}"
+                                                 VerticalAlignment="Top" Margin="0,5,10,0"/>
+
+                                    <!-- Имя + описание (растёт до 2 строк, дальше свой скролл) -->
+                                    <StackPanel Grid.Column="2" Margin="0,0,10,0">
+                                        <TextBox Style="{StaticResource TaskInput}"
+                                                 Text="{Binding Name, Mode=TwoWay, UpdateSourceTrigger=LostFocus}"
+                                                 ToolTip="{Binding Notes}"
+                                                 FontSize="12" FontWeight="SemiBold"/>
+                                        <Grid Margin="0,4,0,0">
+                                            <TextBox x:Name="DescBox" Style="{StaticResource TaskInput}"
+                                                     Text="{Binding Description, Mode=TwoWay, UpdateSourceTrigger=LostFocus}"
+                                                     FontSize="11"
+                                                     TextWrapping="Wrap" AcceptsReturn="False"
+                                                     MaxHeight="38"
+                                                     VerticalScrollBarVisibility="Auto"
+                                                     Foreground="{DynamicResource SecondaryForeground}"/>
+                                            <TextBlock Text="{DynamicResource str_TaskBoard_DescriptionHint}"
+                                                       Margin="7,0,0,0" FontSize="11"
+                                                       VerticalAlignment="Center" IsHitTestVisible="False"
+                                                       Opacity="0.6"
+                                                       Foreground="{DynamicResource SecondaryForeground}"
+                                                       Visibility="{Binding Text, ElementName=DescBox,
+                                                                    Converter={StaticResource EmptyToVisTb}}"/>
+                                        </Grid>
+                                    </StackPanel>
+
+                                    <!-- Наш № — обведён, но не редактируется: его назначает ИИ -->
+                                    <Border Grid.Column="3" VerticalAlignment="Top" Margin="0,0,10,0"
+                                            Background="{DynamicResource InputReadOnlyBackground}"
+                                            BorderBrush="{DynamicResource InputBorder}"
+                                            BorderThickness="1" CornerRadius="3"
+                                            Padding="6,3" MinWidth="64"
+                                            ToolTip="{DynamicResource str_TaskBoard_OurIdHint}">
+                                        <TextBlock Text="{Binding Id}" FontSize="12"
+                                                   Foreground="{DynamicResource SecondaryForeground}"/>
+                                    </Border>
+
+                                    <!-- Трекер (Jira) — идёт в маркеры кода -->
+                                    <Grid Grid.Column="4" VerticalAlignment="Top" Margin="0,0,10,0">
+                                        <TextBox x:Name="TrackerBox" Style="{StaticResource TaskInput}"
+                                                 Text="{Binding ExternalId, Mode=TwoWay, UpdateSourceTrigger=LostFocus}"
+                                                 ToolTip="{DynamicResource str_TaskBoard_TrackerHint}"
+                                                 FontSize="12" MinWidth="92"/>
+                                        <TextBlock Text="{DynamicResource str_TaskBoard_TrackerPlaceholder}"
+                                                   Margin="7,0,0,0" FontSize="11"
+                                                   VerticalAlignment="Center" IsHitTestVisible="False"
+                                                   Opacity="0.6"
+                                                   Foreground="{DynamicResource SecondaryForeground}"
+                                                   Visibility="{Binding Text, ElementName=TrackerBox,
+                                                                Converter={StaticResource EmptyToVisTb}}"/>
+                                    </Grid>
+
+                                    <!-- Статус ИИ — клик перебирает -->
+                                    <Button Grid.Column="5" VerticalAlignment="Top" Margin="0,0,10,0"
+                                            Command="{Binding DataContext.CycleTaskStatusCommand,
+                                                      RelativeSource={RelativeSource AncestorType=UserControl}}"
+                                            CommandParameter="{Binding}"
+                                            ToolTip="{DynamicResource str_TaskBoard_CycleHint}"
+                                            Background="Transparent" BorderThickness="0" Padding="0" Cursor="Hand">
+                                        <Border Style="{StaticResource StatusChipBorder}">
+                                            <TextBlock Style="{StaticResource StatusChipText}"
+                                                       Text="{Binding StatusDisplay}"/>
+                                        </Border>
+                                    </Button>
+
+                                    <!-- Принял — после статуса ИИ: юзер проверяет последним -->
+                                    <CheckBox Grid.Column="6"
+                                              IsChecked="{Binding UserDone, Mode=TwoWay}"
+                                              ToolTip="{DynamicResource str_TaskBoard_UserDoneHint}"
+                                              VerticalAlignment="Top" Margin="8,5,10,0"/>
+
+                                    <Button Grid.Column="7"
+                                            Command="{Binding DataContext.RemoveTaskCommand,
+                                                      RelativeSource={RelativeSource AncestorType=UserControl}}"
+                                            CommandParameter="{Binding}"
+                                            Content="✕"
+                                            ToolTip="{DynamicResource str_TaskBoard_RemoveHint}"
+                                            Width="18" Height="18" Padding="0" VerticalAlignment="Top"
+                                            Margin="0,4,0,0"
+                                            FontSize="10" Cursor="Hand"
+                                            Background="Transparent" BorderThickness="0"
+                                            Foreground="{DynamicResource SecondaryForeground}"/>
+                                </Grid>
+                            </Border>
+                        </DataTemplate>
+                    </ItemsControl.ItemTemplate>
+                </ItemsControl>
+            </ScrollViewer>
+        </DockPanel>
     </Border>
 </UserControl>

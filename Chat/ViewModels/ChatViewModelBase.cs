@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
+using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using System.Windows.Input;
@@ -147,7 +148,412 @@ namespace SwanCode.Core.Chat.ViewModels
             InterruptCommand = new RelayCommand(
                 Interrupt,
                 () => IsBusy && _currentSendCts is { IsCancellationRequested: false });
+
+            // Доска задач — общая для обоих продуктов (T-000081, REQ-021)
+            RegisterToolHandler(TaskBoardToolName, HandleTaskBoardUpdate);
+            TaskBoard.CollectionChanged += (_, _) => OnTaskBoardChanged();
+            ToggleTaskBoardCommand = new RelayCommand(
+                () => IsTaskBoardExpanded = !IsTaskBoardExpanded);
+
+            // Доска живёт и без AI: юзер сам добавляет строки, правит имя, крутит статус
+            AddTaskCommand = new RelayCommand(AddTaskManually);
+            RemoveTaskCommand = new RelayCommand<TaskItem>(RemoveTask);
+            CycleTaskStatusCommand = new RelayCommand<TaskItem>(CycleTaskStatus);
+            SetCurrentTaskCommand = new RelayCommand<TaskItem>(SetCurrentTask);
+            SetBoardModeCommand = new RelayCommand<string>(m =>
+            {
+                if (!string.IsNullOrEmpty(m)) BoardMode = m!;
+            });
         }
+
+        // === Доска задач (T-000080/T-000081, REQ-021) =========================
+
+        private const string TaskBoardToolName = "task_board_update";
+
+        private bool _isTaskBoardExpanded = true;
+
+        /// <summary>Строки доски — ведёт AI через тул task_board_update.</summary>
+        public ObservableCollection<TaskItem> TaskBoard { get; } = new();
+
+        // --- Режимы развёртки: доска не должна съедать чат, когда задач много ---
+
+        public const string BoardModeCurrent = "current";  // только строка, помеченная ●
+        public const string BoardModeThree = "three";      // три строки + скролл (дефолт)
+        public const string BoardModeAll = "all";          // все, но не выше половины чата
+
+        private string _boardMode = BoardModeThree;
+        private string _taskFilter = string.Empty;
+        private string _taskSort = TaskSortManual;
+
+        public const string TaskSortManual = "manual";
+        public const string TaskSortStatus = "status";
+        public const string TaskSortTracker = "tracker";
+
+        /// <summary>Режим развёртки доски: current / three / all.</summary>
+        public string BoardMode
+        {
+            get => _boardMode;
+            set
+            {
+                if (!SetProperty(ref _boardMode, value)) return;
+                OnPropertyChanged(nameof(IsBoardModeCurrent));
+                OnPropertyChanged(nameof(IsBoardModeThree));
+                OnPropertyChanged(nameof(IsBoardModeAll));
+                OnPropertyChanged(nameof(IsFilterBarVisible));
+                TasksView.Refresh();
+            }
+        }
+
+        public bool IsBoardModeCurrent => BoardMode == BoardModeCurrent;
+        public bool IsBoardModeThree => BoardMode == BoardModeThree;
+        public bool IsBoardModeAll => BoardMode == BoardModeAll;
+
+        /// <summary>Поиск по имени / описанию / трекеру.</summary>
+        public string TaskFilter
+        {
+            get => _taskFilter;
+            set { if (SetProperty(ref _taskFilter, value)) TasksView.Refresh(); }
+        }
+
+        /// <summary>Сортировка: manual (ручной порядок) / status / tracker.</summary>
+        public string TaskSort
+        {
+            get => _taskSort;
+            set { if (SetProperty(ref _taskSort, value)) ApplySort(); }
+        }
+
+        /// <summary>
+        /// Панель поиска/сортировки: только в режиме «все» и только когда задач правда много —
+        /// на четырёх строках это мёртвый груз.
+        /// </summary>
+        public bool IsFilterBarVisible => IsBoardModeAll && TaskBoard.Count > 6;
+
+        private System.ComponentModel.ICollectionView? _tasksView;
+
+        /// <summary>Отображаемый срез доски: режим + фильтр + сортировка.</summary>
+        public System.ComponentModel.ICollectionView TasksView
+        {
+            get
+            {
+                if (_tasksView != null) return _tasksView;
+
+                _tasksView = System.Windows.Data.CollectionViewSource.GetDefaultView(TaskBoard);
+                _tasksView.Filter = o =>
+                {
+                    if (o is not TaskItem t) return false;
+
+                    // Режим «текущая» — показываем только помеченную строку
+                    if (IsBoardModeCurrent && !t.IsCurrent) return false;
+
+                    if (string.IsNullOrWhiteSpace(TaskFilter)) return true;
+
+                    var q = TaskFilter.Trim();
+                    const StringComparison ic = StringComparison.CurrentCultureIgnoreCase;
+                    return (t.Name?.Contains(q, ic) ?? false)
+                        || (t.Description?.Contains(q, ic) ?? false)
+                        || (t.ExternalId?.Contains(q, ic) ?? false);
+                };
+                return _tasksView;
+            }
+        }
+
+        private void ApplySort()
+        {
+            var view = TasksView;
+            using (view.DeferRefresh())
+            {
+                view.SortDescriptions.Clear();
+                switch (TaskSort)
+                {
+                    case TaskSortStatus:
+                        view.SortDescriptions.Add(new System.ComponentModel.SortDescription(
+                            nameof(TaskItem.Status), System.ComponentModel.ListSortDirection.Ascending));
+                        break;
+                    case TaskSortTracker:
+                        view.SortDescriptions.Add(new System.ComponentModel.SortDescription(
+                            nameof(TaskItem.ExternalId), System.ComponentModel.ListSortDirection.Ascending));
+                        break;
+                    // manual — без SortDescriptions: остаётся порядок коллекции (drag&drop)
+                }
+            }
+        }
+
+        /// <summary>Доска показывается только когда AI её завёл.</summary>
+        public bool HasTaskBoard => TaskBoard.Count > 0;
+
+        /// <summary>Панель развёрнута (иначе — одна строка «Задачи 2/5 ▾»).</summary>
+        public bool IsTaskBoardExpanded
+        {
+            get => _isTaskBoardExpanded;
+            set => SetProperty(ref _isTaskBoardExpanded, value);
+        }
+
+        /// <summary>Счётчик для схлопнутого заголовка: закрытых из всех.</summary>
+        public string TaskBoardSummary
+        {
+            get
+            {
+                var done = 0;
+                foreach (var t in TaskBoard)
+                    if (t.UserDone || t.Status == TaskBoardStatus.Done) done++;
+                return $"{done}/{TaskBoard.Count}";
+            }
+        }
+
+        public ICommand ToggleTaskBoardCommand { get; }
+
+        /// <summary>Ручное управление доской — она работает и без AI (тула может не быть).</summary>
+        public ICommand AddTaskCommand { get; }
+        public ICommand RemoveTaskCommand { get; }
+        public ICommand CycleTaskStatusCommand { get; }
+        public ICommand SetCurrentTaskCommand { get; }
+        public ICommand SetBoardModeCommand { get; }
+
+        /// <summary>Текущая задача доски — источник {task} для маркеров кода.</summary>
+        public TaskItem? CurrentTask => TaskBoard.FirstOrDefault(t => t.IsCurrent);
+
+        /// <summary>
+        /// Отметить строку текущей (эксклюзивно). Повторный клик по текущей — снимает отметку.
+        /// </summary>
+        private void SetCurrentTask(TaskItem? item)
+        {
+            if (item == null) return;
+
+            var turnOff = item.IsCurrent;
+            foreach (var t in TaskBoard)
+                t.IsCurrent = !turnOff && ReferenceEquals(t, item);
+
+            OnPropertyChanged(nameof(CurrentTask));
+            OnCurrentTaskChanged(CurrentTask);
+
+            // В режиме «текущая» показывается ровно помеченная строка — срез пересобрать
+            if (IsBoardModeCurrent) TasksView.Refresh();
+        }
+
+        /// <summary>
+        /// Hook для продукта: текущая задача сменилась — её номер трекера должен уехать
+        /// в профиль маркеров ({task}). Core про профиль маркеров не знает.
+        /// </summary>
+        protected virtual void OnCurrentTaskChanged(TaskItem? current) { }
+
+        // Счётчик id для строк, заведённых руками (AI назначает свои id сам)
+        private int _manualTaskSeq;
+
+        private void AddTaskManually()
+        {
+            string id;
+            do { id = $"u{++_manualTaskSeq}"; }
+            while (TaskBoard.Any(t => t.Id == id));
+
+            var item = new TaskItem
+            {
+                Id = id,
+                Name = FindString("str_TaskBoard_NewTask", "Новая задача"),
+                Status = TaskBoardStatus.Pending
+            };
+            item.PropertyChanged += OnTaskItemChanged;
+            TaskBoard.Add(item);
+            IsTaskBoardExpanded = true;
+        }
+
+        private void RemoveTask(TaskItem? item)
+        {
+            if (item == null) return;
+
+            // Спрашиваем: в строке живёт описание, случайно потерять его обидно.
+            var answer = System.Windows.MessageBox.Show(
+                string.Format(
+                    FindString("str_TaskBoard_RemoveConfirm", "Удалить задачу «{0}»?"),
+                    item.Name),
+                FindString("str_TaskBoard_RemoveConfirmTitle", "Удаление задачи"),
+                System.Windows.MessageBoxButton.YesNo,
+                System.Windows.MessageBoxImage.Question);
+            if (answer != System.Windows.MessageBoxResult.Yes) return;
+
+            item.PropertyChanged -= OnTaskItemChanged;
+            TaskBoard.Remove(item);
+        }
+
+        /// <summary>
+        /// Перестановка строки drag&amp;drop'ом. Ручной порядок — «родной» порядок коллекции;
+        /// сортировка по статусу/трекеру его не рушит (это отдельный вид, см. TasksView).
+        /// </summary>
+        public void MoveTask(TaskItem? dragged, TaskItem? target)
+        {
+            if (dragged == null || target == null || ReferenceEquals(dragged, target)) return;
+
+            var from = TaskBoard.IndexOf(dragged);
+            var to = TaskBoard.IndexOf(target);
+            if (from < 0 || to < 0) return;
+
+            TaskBoard.Move(from, to);
+        }
+
+        /// <summary>
+        /// Клик по чипу статуса перебирает ожидает → в работе → выполнено (по кругу).
+        /// Blocked/cancelled ставит AI — руками они нужны редко, в цикл не включены.
+        /// </summary>
+        private void CycleTaskStatus(TaskItem? item)
+        {
+            if (item == null) return;
+            item.Status = item.Status switch
+            {
+                TaskBoardStatus.Pending => TaskBoardStatus.InProgress,
+                TaskBoardStatus.InProgress => TaskBoardStatus.Done,
+                _ => TaskBoardStatus.Pending
+            };
+        }
+
+        private void OnTaskBoardChanged()
+        {
+            OnPropertyChanged(nameof(HasTaskBoard));
+            OnPropertyChanged(nameof(TaskBoardSummary));
+            OnPropertyChanged(nameof(IsFilterBarVisible));
+        }
+
+        /// <summary>
+        /// Галочка пользователя — отдельная ось от статуса AI. Отметка уходит в AI
+        /// сразу новым ходом (клиент не может инициировать tool_use, только сообщение).
+        /// Пока AI занят — ход не шлём: актуальная доска и так вернётся ему в success
+        /// ближайшего task_board_update (в payload отдаётся вся доска с UserDone).
+        /// </summary>
+        private void OnTaskItemChanged(object? sender, System.ComponentModel.PropertyChangedEventArgs e)
+        {
+            if (sender is not TaskItem item) return;
+
+            if (e.PropertyName == nameof(TaskItem.Status) || e.PropertyName == nameof(TaskItem.UserDone))
+                OnPropertyChanged(nameof(TaskBoardSummary));
+
+            // Правка номера трекера у текущей задачи — сразу в маркеры кода
+            if (e.PropertyName == nameof(TaskItem.ExternalId) && item.IsCurrent)
+                OnCurrentTaskChanged(item);
+
+            if (e.PropertyName != nameof(TaskItem.UserDone)) return;
+            if (_suppressUserDoneEcho || IsBusy) return;
+
+            var template = item.UserDone
+                ? FindString("str_TaskBoard_UserChecked", "Отметил выполненной задачу «{0}».")
+                : FindString("str_TaskBoard_UserUnchecked", "Снял отметку выполнения с задачи «{0}».");
+
+            _ = SendMessageAsync(string.Format(template, item.Name), "free_form");
+        }
+
+        // Взводится, пока доску правит сам тул — чтобы правки AI не порождали авто-ходов.
+        private bool _suppressUserDoneEcho;
+
+        private Task<ToolResultItem> HandleTaskBoardUpdate(ToolUseDTO toolUse)
+        {
+            var input = toolUse.Input;
+            if (input.ValueKind != System.Text.Json.JsonValueKind.Object ||
+                !input.TryGetProperty("tasks", out var tasksEl) ||
+                tasksEl.ValueKind != System.Text.Json.JsonValueKind.Array ||
+                tasksEl.GetArrayLength() == 0)
+            {
+                return Task.FromResult(ToolFailure(toolUse, "INVALID_INPUT",
+                    "Пустой tasks[]. Каждый элемент — {id, name, status} (status: pending|in_progress|done|blocked|cancelled)."));
+            }
+
+            _suppressUserDoneEcho = true;
+            try
+            {
+                if (input.TryGetProperty("replace", out var replaceEl) &&
+                    replaceEl.ValueKind == System.Text.Json.JsonValueKind.True)
+                {
+                    foreach (var old in TaskBoard) old.PropertyChanged -= OnTaskItemChanged;
+                    TaskBoard.Clear();
+                }
+
+                var applied = 0;
+                var index = 0;
+                foreach (var el in tasksEl.EnumerateArray())
+                {
+                    index++;
+                    string? Str(string prop) =>
+                        el.ValueKind == System.Text.Json.JsonValueKind.Object &&
+                        el.TryGetProperty(prop, out var v) &&
+                        v.ValueKind == System.Text.Json.JsonValueKind.String
+                            ? v.GetString()
+                            : null;
+
+                    var id = Str("id");
+                    if (string.IsNullOrWhiteSpace(id))
+                        return Task.FromResult(ToolFailure(toolUse, "INVALID_INPUT",
+                            $"Задача №{index}: не передан id."));
+
+                    var status = Str("status");
+                    if (!TaskBoardStatus.IsValid(status))
+                        return Task.FromResult(ToolFailure(toolUse, "INVALID_INPUT",
+                            $"Задача №{index}: неизвестный status «{status}». Допустимо: pending, in_progress, done, blocked, cancelled."));
+
+                    var name = Str("name");
+                    var existing = TaskBoard.FirstOrDefault(t => t.Id == id);
+
+                    if (existing == null)
+                    {
+                        if (string.IsNullOrWhiteSpace(name))
+                            return Task.FromResult(ToolFailure(toolUse, "INVALID_INPUT",
+                                $"Задача №{index}: новая задача «{id}» без name."));
+
+                        var item = new TaskItem
+                        {
+                            Id = id!,
+                            Name = name!,
+                            Status = status!,
+                            Description = Str("description"),
+                            ExternalId = Str("externalId"),
+                            Notes = Str("notes")
+                        };
+                        item.PropertyChanged += OnTaskItemChanged;
+                        TaskBoard.Add(item);
+                    }
+                    else
+                    {
+                        // Имя при обновлении можно не слать — сохраняем прежнее (REQ-021)
+                        if (!string.IsNullOrWhiteSpace(name)) existing.Name = name!;
+                        existing.Status = status!;
+                        if (Str("description") is { } desc) existing.Description = desc;
+                        if (Str("externalId") is { } ext) existing.ExternalId = ext;
+                        if (Str("notes") is { } notes) existing.Notes = notes;
+                    }
+                    applied++;
+                }
+
+                OnPropertyChanged(nameof(TaskBoardSummary));
+
+                // Возвращаем ВСЮ доску, включая UserDone — так AI сразу видит,
+                // что пользователь отметил руками, без отдельного тула чтения.
+                return Task.FromResult(ToolSuccess(toolUse, new
+                {
+                    applied,
+                    board = TaskBoard.Select(t => new
+                    {
+                        id = t.Id,
+                        name = t.Name,
+                        description = t.Description,
+                        status = t.Status,
+                        userDone = t.UserDone,
+                        isCurrent = t.IsCurrent,
+                        externalId = t.ExternalId,
+                        notes = t.Notes
+                    }).ToArray()
+                }));
+            }
+            finally
+            {
+                _suppressUserDoneEcho = false;
+            }
+        }
+
+        /// <summary>Сброс доски — новый диалог начинается с чистого листа.</summary>
+        protected void ClearTaskBoard()
+        {
+            foreach (var t in TaskBoard) t.PropertyChanged -= OnTaskItemChanged;
+            TaskBoard.Clear();
+            IsTaskBoardExpanded = true;
+        }
+
+        private static string FindString(string key, string fallback) =>
+            System.Windows.Application.Current?.TryFindResource(key) as string ?? fallback;
 
         /// <summary>
         /// Прервать активный chat-ход (submit /chat/async или его polling). Идемпотентно —
@@ -160,6 +566,33 @@ namespace SwanCode.Core.Chat.ViewModels
         }
 
         // --- Tool dispatch ---------------------------------------------------
+
+        private static readonly System.Text.Json.JsonSerializerOptions PayloadJson = new()
+        {
+            Encoder = System.Text.Encodings.Web.JavaScriptEncoder.UnsafeRelaxedJsonEscaping
+        };
+
+        /// <summary>Payload тул-результата → base64-JSON (generic-канал dataB64).</summary>
+        protected static string ToDataB64(object payload) =>
+            Convert.ToBase64String(System.Text.Encoding.UTF8.GetBytes(
+                System.Text.Json.JsonSerializer.Serialize(payload, PayloadJson)));
+
+        protected static ToolResultItem ToolSuccess(ToolUseDTO toolUse, object payload) => new()
+        {
+            ToolUseId = toolUse.Id,
+            Name = toolUse.Name,
+            Status = Models.ToolResultStatus.Success,
+            DataB64 = ToDataB64(payload)
+        };
+
+        protected static ToolResultItem ToolFailure(ToolUseDTO toolUse, string error, string message, object? payload = null) => new()
+        {
+            ToolUseId = toolUse.Id,
+            Name = toolUse.Name,
+            Status = Models.ToolResultStatus.Failure,
+            Message = message,
+            DataB64 = ToDataB64(payload ?? new { error, message })
+        };
 
         /// <summary>
         /// Зарегистрировать handler для tool_use по имени. Продуктовые наследники
@@ -526,6 +959,7 @@ namespace SwanCode.Core.Chat.ViewModels
         {
             Messages.Clear();
             SessionId = string.Empty;
+            ClearTaskBoard();
         }
     }
 }

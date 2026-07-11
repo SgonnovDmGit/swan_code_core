@@ -80,4 +80,43 @@
     <sys:String x:Key="str_Chat_InfoTimeTotal">total</sys:String>
     <sys:String x:Key="str_Chat_InfoMessageId">turn id</sys:String>
     <sys:String x:Key="str_Chat_InfoTime">time</sys:String>
+
+    <!-- Task board (T-000080..T-000082, REQ-021) -->
+    <sys:String x:Key="str_TaskBoard_Title">Task board</sys:String>
+    <sys:String x:Key="str_TaskBoard_Pending">pending</sys:String>
+    <sys:String x:Key="str_TaskBoard_InProgress">in progress</sys:String>
+    <sys:String x:Key="str_TaskBoard_Done">done</sys:String>
+    <sys:String x:Key="str_TaskBoard_Blocked">blocked</sys:String>
+    <sys:String x:Key="str_TaskBoard_Cancelled">cancelled</sys:String>
+    <sys:String x:Key="str_TaskBoard_Toggle">Collapse / expand the task board</sys:String>
+    <sys:String x:Key="str_TaskBoard_UserChecked">Marked the task “{0}” as done.</sys:String>
+    <sys:String x:Key="str_TaskBoard_UserUnchecked">Cleared the done mark on the task “{0}”.</sys:String>
+    <sys:String x:Key="str_Tool_task_board_update">Task board</sys:String>
+    <sys:String x:Key="str_TaskBoard_Add">+ Task</sys:String>
+    <sys:String x:Key="str_TaskBoard_AddHint">Add a task manually</sys:String>
+    <sys:String x:Key="str_TaskBoard_NewTask">New task</sys:String>
+    <sys:String x:Key="str_TaskBoard_Empty">No tasks. Add one manually or ask the AI to draft a plan.</sys:String>
+    <sys:String x:Key="str_TaskBoard_CycleHint">Change status: pending → in progress → done</sys:String>
+    <sys:String x:Key="str_TaskBoard_RemoveHint">Remove the task</sys:String>
+    <sys:String x:Key="str_TaskBoard_CurrentHint">Current task — its tracker id goes into the code markers</sys:String>
+    <sys:String x:Key="str_TaskBoard_OurIdHint">Our task id within this dialog</sys:String>
+    <sys:String x:Key="str_TaskBoard_TrackerHint">External tracker id (Jira etc.) — substituted into the marker as {task}</sys:String>
+    <sys:String x:Key="str_TaskBoard_UserDoneHint">User mark: verified and accepted</sys:String>
+    <sys:String x:Key="str_TaskBoard_DescriptionHint">Description</sys:String>
+    <sys:String x:Key="str_TaskBoard_TrackerPlaceholder">e.g. JIRA-902</sys:String>
+    <sys:String x:Key="str_TaskBoard_ColTask">TASK AND DESCRIPTION</sys:String>
+    <sys:String x:Key="str_TaskBoard_ColOurId">OUR ID</sys:String>
+    <sys:String x:Key="str_TaskBoard_ColTracker">TRACKER</sys:String>
+    <sys:String x:Key="str_TaskBoard_ColUser">ACCEPTED</sys:String>
+    <sys:String x:Key="str_TaskBoard_ColStatus">AI STATUS</sys:String>
+    <sys:String x:Key="str_TaskBoard_ModeCurrent">current</sys:String>
+    <sys:String x:Key="str_TaskBoard_ModeThree">3</sys:String>
+    <sys:String x:Key="str_TaskBoard_ModeAll">all</sys:String>
+    <sys:String x:Key="str_TaskBoard_DragHint">Drag to reorder tasks</sys:String>
+    <sys:String x:Key="str_TaskBoard_SearchPlaceholder">Search by name, description, tracker…</sys:String>
+    <sys:String x:Key="str_TaskBoard_SortManual">Sort: manual</sys:String>
+    <sys:String x:Key="str_TaskBoard_SortStatus">Sort: by status</sys:String>
+    <sys:String x:Key="str_TaskBoard_SortTracker">Sort: by tracker</sys:String>
+    <sys:String x:Key="str_TaskBoard_RemoveConfirm">Remove the task “{0}”?</sys:String>
+    <sys:String x:Key="str_TaskBoard_RemoveConfirmTitle">Remove task</sys:String>
 </ResourceDictionary>

@@ -48,6 +48,11 @@
     <SolidColorBrush x:Key="ReasoningForeground" Color="#8A6D00"/>
     <SolidColorBrush x:Key="ReasoningBackground" Color="#FFF7DC"/>
     <SolidColorBrush x:Key="ReasoningBorder" Color="#F0E2A8"/>
+    <!-- Поля ввода (T-000082): отдельные кисти. Фоновые Primary/Secondary/Tertiary в теме 1С
+         совпадают, поэтому поле, покрашенное в них, сливается с панелью — нужна своя кисть. -->
+    <SolidColorBrush x:Key="InputBackground" Color="#FFFFFF"/>
+    <SolidColorBrush x:Key="InputBorder" Color="#C6D2CC"/>
+    <SolidColorBrush x:Key="InputReadOnlyBackground" Color="#E4EBE7"/>
     <SolidColorBrush x:Key="ToolCardBackground" Color="#F6F9F7"/>
     <SolidColorBrush x:Key="ToolCardBorder" Color="#DFE8E3"/>
     <SolidColorBrush x:Key="SuccessColor" Color="#0FA97A"/>

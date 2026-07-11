@@ -438,7 +438,16 @@
 
     <!-- Композер вынесен в ChatInputBar (T-000074): ChatView = только лента -->
     <Grid>
-        <ScrollViewer x:Name="ThreadScroll"
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+        </Grid.RowDefinitions>
+
+        <!-- Доска задач (T-000082): липкая над тредом. Видна всегда — ею можно управлять
+             руками, без AI (схлопывается в одну строку заголовка). -->
+        <views:TaskBoardView Grid.Row="0" Margin="16,12,16,0"/>
+
+        <ScrollViewer x:Name="ThreadScroll" Grid.Row="1"
                       VerticalScrollBarVisibility="Auto"
                       HorizontalScrollBarVisibility="Disabled"
                       Padding="16,12,16,0">
@@ -447,7 +456,7 @@
         </ScrollViewer>
 
         <!-- Welcome-экран первого запуска (T-000074): виден пока нет сообщений -->
-        <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center"
+        <StackPanel Grid.Row="1" HorizontalAlignment="Center" VerticalAlignment="Center"
                     MaxWidth="420" IsHitTestVisible="False">
             <StackPanel.Style>
                 <Style TargetType="StackPanel">

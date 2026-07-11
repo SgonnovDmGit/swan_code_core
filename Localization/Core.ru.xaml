@@ -80,4 +80,43 @@
     <sys:String x:Key="str_Chat_InfoTimeTotal">всего</sys:String>
     <sys:String x:Key="str_Chat_InfoMessageId">id хода</sys:String>
     <sys:String x:Key="str_Chat_InfoTime">время</sys:String>
+
+    <!-- Доска задач (T-000080..T-000082, REQ-021) -->
+    <sys:String x:Key="str_TaskBoard_Title">Доска задач</sys:String>
+    <sys:String x:Key="str_TaskBoard_Pending">ожидает</sys:String>
+    <sys:String x:Key="str_TaskBoard_InProgress">в работе</sys:String>
+    <sys:String x:Key="str_TaskBoard_Done">выполнено</sys:String>
+    <sys:String x:Key="str_TaskBoard_Blocked">блокировано</sys:String>
+    <sys:String x:Key="str_TaskBoard_Cancelled">отменено</sys:String>
+    <sys:String x:Key="str_TaskBoard_Toggle">Свернуть / развернуть доску задач</sys:String>
+    <sys:String x:Key="str_TaskBoard_UserChecked">Отметил выполненной задачу «{0}».</sys:String>
+    <sys:String x:Key="str_TaskBoard_UserUnchecked">Снял отметку выполнения с задачи «{0}».</sys:String>
+    <sys:String x:Key="str_Tool_task_board_update">Доска задач</sys:String>
+    <sys:String x:Key="str_TaskBoard_Add">+ Задача</sys:String>
+    <sys:String x:Key="str_TaskBoard_AddHint">Добавить задачу вручную</sys:String>
+    <sys:String x:Key="str_TaskBoard_NewTask">Новая задача</sys:String>
+    <sys:String x:Key="str_TaskBoard_Empty">Задач нет. Добавьте вручную или попросите AI составить план.</sys:String>
+    <sys:String x:Key="str_TaskBoard_CycleHint">Сменить статус: ожидает → в работе → выполнено</sys:String>
+    <sys:String x:Key="str_TaskBoard_RemoveHint">Удалить задачу</sys:String>
+    <sys:String x:Key="str_TaskBoard_CurrentHint">Текущая задача — её номер трекера идёт в маркеры кода</sys:String>
+    <sys:String x:Key="str_TaskBoard_OurIdHint">Наш номер задачи в этом диалоге</sys:String>
+    <sys:String x:Key="str_TaskBoard_TrackerHint">Номер во внешнем трекере (Jira и т.п.) — подставляется в маркер вместо {task}</sys:String>
+    <sys:String x:Key="str_TaskBoard_UserDoneHint">Отметка пользователя: проверено и принято</sys:String>
+    <sys:String x:Key="str_TaskBoard_DescriptionHint">Описание</sys:String>
+    <sys:String x:Key="str_TaskBoard_TrackerPlaceholder">напр. JIRA-902</sys:String>
+    <sys:String x:Key="str_TaskBoard_ColTask">ЗАДАЧА И ОПИСАНИЕ</sys:String>
+    <sys:String x:Key="str_TaskBoard_ColOurId">НАШ №</sys:String>
+    <sys:String x:Key="str_TaskBoard_ColTracker">ТРЕКЕР</sys:String>
+    <sys:String x:Key="str_TaskBoard_ColUser">ПРИНЯЛ</sys:String>
+    <sys:String x:Key="str_TaskBoard_ColStatus">СТАТУС ИИ</sys:String>
+    <sys:String x:Key="str_TaskBoard_ModeCurrent">текущая</sys:String>
+    <sys:String x:Key="str_TaskBoard_ModeThree">3</sys:String>
+    <sys:String x:Key="str_TaskBoard_ModeAll">все</sys:String>
+    <sys:String x:Key="str_TaskBoard_DragHint">Тянуть — менять порядок задач</sys:String>
+    <sys:String x:Key="str_TaskBoard_SearchPlaceholder">Поиск по имени, описанию, трекеру…</sys:String>
+    <sys:String x:Key="str_TaskBoard_SortManual">Сортировка: вручную</sys:String>
+    <sys:String x:Key="str_TaskBoard_SortStatus">Сортировка: по статусу</sys:String>
+    <sys:String x:Key="str_TaskBoard_SortTracker">Сортировка: по трекеру</sys:String>
+    <sys:String x:Key="str_TaskBoard_RemoveConfirm">Удалить задачу «{0}»?</sys:String>
+    <sys:String x:Key="str_TaskBoard_RemoveConfirmTitle">Удаление задачи</sys:String>
 </ResourceDictionary>
