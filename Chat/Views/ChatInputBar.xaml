@@ -343,6 +343,39 @@
                             </Grid.ToolTip>
                         </Grid>
 
+                        <!-- === «Сжать контекст» (T-000133) ===
+                             Стоит вплотную к кольцу: оно и есть повод нажать. Появляется, только
+                             когда контекст вообще измерен — иначе кнопка звала бы на платный вызов
+                             в пустом диалоге. FallbackValue=Collapsed: у продукта без кольца
+                             (биндинг не разрешится) кнопки просто не будет. -->
+                        <Button Grid.Column="2" Command="{Binding ActiveChat.CompactContextCommand}"
+                                HorizontalAlignment="Left" VerticalAlignment="Center"
+                                Margin="4,0,0,0" Padding="6,3" Cursor="Hand"
+                                ToolTip="{DynamicResource str_CompactContextHint}"
+                                ToolTipService.InitialShowDelay="150"
+                                Visibility="{Binding ActiveChat.HasContextFill,
+                                             Converter={StaticResource BoolToVis}, FallbackValue=Collapsed}">
+                            <Button.Template>
+                                <ControlTemplate TargetType="Button">
+                                    <Border x:Name="bd" Background="Transparent" CornerRadius="6"
+                                            Padding="{TemplateBinding Padding}">
+                                        <ContentPresenter/>
+                                    </Border>
+                                    <ControlTemplate.Triggers>
+                                        <Trigger Property="IsMouseOver" Value="True">
+                                            <Setter TargetName="bd" Property="Background"
+                                                    Value="{DynamicResource SecondaryBackground}"/>
+                                        </Trigger>
+                                        <Trigger Property="IsEnabled" Value="False">
+                                            <Setter Property="Opacity" Value="0.35"/>
+                                        </Trigger>
+                                    </ControlTemplate.Triggers>
+                                </ControlTemplate>
+                            </Button.Template>
+                            <TextBlock Text="⊟" FontSize="14" FontWeight="SemiBold"
+                                       Foreground="{DynamicResource SecondaryForeground}"/>
+                        </Button>
+
                         <!-- === Чип режима (только 1С-клиент: ShowModeChip=True) === -->
                         <ToggleButton x:Name="ModeChip" Grid.Column="3"
                                       Margin="0,0,8,0"

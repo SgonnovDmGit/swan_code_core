@@ -131,4 +131,11 @@
     <sys:String x:Key="str_TaskBoard_SortTracker">Сортировка: по трекеру</sys:String>
     <sys:String x:Key="str_TaskBoard_RemoveConfirm">Удалить задачу «{0}»?</sys:String>
     <sys:String x:Key="str_TaskBoard_RemoveConfirmTitle">Удаление задачи</sys:String>
+
+    <!-- Сжатие контекста (T-000133) -->
+    <sys:String x:Key="str_CompactContext">Сжать контекст</sys:String>
+    <sys:String x:Key="str_CompactContextHint">Свернуть старую историю диалога в сводку — не дожидаясь автоматического сжатия. Сообщения останутся на месте. Это платный вызов AI.</sys:String>
+    <sys:String x:Key="str_ContextCompactedFmt">Контекст сжат: {0:N0} → ~{1:N0} токенов</sys:String>
+    <sys:String x:Key="str_ContextCompacted">Контекст сжат</sys:String>
+    <sys:String x:Key="str_CompactBelowFloor">Сжимать пока нечего — контекст ещё не набрался.</sys:String>
 </ResourceDictionary>

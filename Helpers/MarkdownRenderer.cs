@@ -479,6 +479,55 @@ namespace SwanCode.Core.Helpers
             list.ListItems.Add(new ListItem(para));
         }
 
+        // --- LaTeX → юникод (T-000136) ---------------------------------------
+
+        // Модель нет-нет да и вставит LaTeX: в тексте видно сырое «$\rightarrow$» вместо стрелки
+        // (смок 12.07). Полноценный LaTeX нам не нужен — разворачиваем частые макросы в юникод.
+        private static readonly Dictionary<string, string> LatexMacros = new(StringComparer.Ordinal)
+        {
+            ["rightarrow"] = "→", ["to"] = "→", ["Rightarrow"] = "⇒", ["mapsto"] = "↦",
+            ["leftarrow"] = "←", ["gets"] = "←", ["Leftarrow"] = "⇐",
+            ["leftrightarrow"] = "↔", ["Leftrightarrow"] = "⇔",
+            ["uparrow"] = "↑", ["downarrow"] = "↓",
+            ["le"] = "≤", ["leq"] = "≤", ["ge"] = "≥", ["geq"] = "≥",
+            ["ne"] = "≠", ["neq"] = "≠", ["approx"] = "≈", ["equiv"] = "≡", ["sim"] = "∼",
+            ["times"] = "×", ["div"] = "÷", ["cdot"] = "·", ["pm"] = "±",
+            ["infty"] = "∞", ["sum"] = "∑", ["prod"] = "∏", ["sqrt"] = "√", ["partial"] = "∂",
+            ["ldots"] = "…", ["dots"] = "…", ["cdots"] = "⋯",
+            ["in"] = "∈", ["notin"] = "∉", ["subset"] = "⊂", ["supset"] = "⊃",
+            ["cup"] = "∪", ["cap"] = "∩", ["emptyset"] = "∅",
+            ["land"] = "∧", ["lor"] = "∨", ["neg"] = "¬", ["forall"] = "∀", ["exists"] = "∃",
+            ["alpha"] = "α", ["beta"] = "β", ["gamma"] = "γ", ["delta"] = "δ",
+            ["epsilon"] = "ε", ["theta"] = "θ", ["lambda"] = "λ", ["mu"] = "μ",
+            ["pi"] = "π", ["rho"] = "ρ", ["sigma"] = "σ", ["tau"] = "τ", ["phi"] = "φ",
+            ["omega"] = "ω", ["Delta"] = "Δ", ["Sigma"] = "Σ", ["Omega"] = "Ω",
+        };
+
+        private static readonly Regex LatexMacroRe = new(@"\\([A-Za-z]+)", RegexOptions.Compiled);
+
+        // Инлайн-математика в долларах. Ограничение длины — чтобы «$5 … $10» в тексте про деньги
+        // не схлопнулось в один «математический» кусок на пол-абзаца.
+        private static readonly Regex InlineMathRe = new(@"\$([^$\n]{1,120})\$", RegexOptions.Compiled);
+
+        /// <summary>
+        /// Разворачивает частые LaTeX-макросы в юникод. Долларовую обёртку снимаем ТОЛЬКО когда
+        /// внутри действительно макрос: «заплатил $5, получил $10» трогать нельзя.
+        /// </summary>
+        private static string ExpandLatex(string text)
+        {
+            if (text.IndexOf('\\') < 0) return text;   // подавляющее большинство текстов — быстрый выход
+
+            var s = InlineMathRe.Replace(text, m =>
+                m.Groups[1].Value.Contains('\\') ? ExpandMacros(m.Groups[1].Value) : m.Value);
+
+            return ExpandMacros(s);
+        }
+
+        /// <summary>Неизвестный макрос оставляем как есть — врать пользователю хуже, чем не знать.</summary>
+        private static string ExpandMacros(string s) =>
+            LatexMacroRe.Replace(s, m =>
+                LatexMacros.TryGetValue(m.Groups[1].Value, out var glyph) ? glyph : m.Value);
+
         // --- Инлайн ----------------------------------------------------------
 
         private static readonly Regex InlineToken = new(
@@ -490,11 +539,13 @@ namespace SwanCode.Core.Helpers
             foreach (Match m in InlineToken.Matches(text))
             {
                 if (m.Index > pos)
-                    inlines.Add(new Run(text[pos..m.Index]));
+                    inlines.Add(new Run(ExpandLatex(text[pos..m.Index])));
 
                 var token = m.Value;
                 if (token.StartsWith("`"))
                 {
+                    // Внутри бэктиков LaTeX НЕ разворачиваем: там код, и «\rightarrow» — это
+                    // именно «\rightarrow», а не стрелка.
                     var run = new Run(token[1..^1])
                     {
                         FontFamily = new FontFamily("Consolas"),
@@ -505,18 +556,18 @@ namespace SwanCode.Core.Helpers
                 }
                 else if (token.StartsWith("**"))
                 {
-                    inlines.Add(new Bold(new Run(token[2..^2])));
+                    inlines.Add(new Bold(new Run(ExpandLatex(token[2..^2]))));
                 }
                 else
                 {
-                    inlines.Add(new Italic(new Run(token[1..^1])));
+                    inlines.Add(new Italic(new Run(ExpandLatex(token[1..^1]))));
                 }
 
                 pos = m.Index + m.Length;
             }
 
             if (pos < text.Length)
-                inlines.Add(new Run(text[pos..]));
+                inlines.Add(new Run(ExpandLatex(text[pos..])));
         }
     }
 

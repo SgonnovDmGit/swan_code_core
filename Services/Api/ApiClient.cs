@@ -359,6 +359,20 @@ namespace SwanCode.Core.Services.Api
             return await SendAsync<SessionMessagesResponse>(request);
         }
 
+        /// <summary>
+        /// Ручное сжатие контекста диалога (POST /v1/api/sessions/{id}/compact, T-000133).
+        /// Тело опционально (пустое = модель компактизатора по умолчанию) — не шлём.
+        /// Сжатие — обычный AI-вызов и списывается с баланса. Отказы, которые надо понимать:
+        /// 409 COMPACTION_BELOW_FLOOR (сжимать ещё нечего), 402 INSUFFICIENT_BALANCE,
+        /// 503 COMPACTION_NOT_CONFIGURED.
+        /// </summary>
+        public async Task<CompactResponse> CompactSessionAsync(string sessionId)
+        {
+            var path = $"/v1/api/sessions/{Uri.EscapeDataString(sessionId)}/compact";
+            using var request = CreateRequest(HttpMethod.Post, path);
+            return await SendAsync<CompactResponse>(request);
+        }
+
         // SSE-стрим (POST /v1/api/chat/stream) отключён на сервере с ANNOUNCE-004 v0.33.0 —
         // сервер безусловно отвечает 501 STREAMING_NOT_SUPPORTED, пока Router-SSE не вернётся.
         // Клиентский метод SendChatStreamAsync (и модель SseDoneData) удалены — восстановим,

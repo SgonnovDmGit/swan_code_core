@@ -145,6 +145,9 @@ namespace SwanCode.Core.Chat.ViewModels
         public ICommand NewChatCommand { get; }
         public ICommand InterruptCommand { get; }
 
+        /// <summary>Ручное сжатие контекста диалога (T-000133).</summary>
+        public ICommand CompactContextCommand { get; }
+
         /// <summary>
         /// «→ в песочницу» на код-блоке ответа (T-000096). Базовый чат песочницы не знает —
         /// продукт переопределяет. null (Universal) → кнопки на блоках не рисуются.
@@ -158,6 +161,11 @@ namespace SwanCode.Core.Chat.ViewModels
             SendMessageCommand = new RelayCommand(
                 () => _ = SendMessageAsync(InputText, "free_form"),
                 () => !string.IsNullOrWhiteSpace(InputText) && !IsBusy);
+
+            // T-000133: сжать контекст руками, не дожидаясь автотриггера у самого потолка.
+            CompactContextCommand = new RelayCommand(
+                () => _ = CompactContextAsync(),
+                () => !string.IsNullOrEmpty(SessionId) && !IsBusy);
 
             NewChatCommand = new RelayCommand(NewChat, () => !IsBusy);
 
@@ -699,6 +707,65 @@ namespace SwanCode.Core.Chat.ViewModels
 
         private static string FindString(string key, string fallback) =>
             System.Windows.Application.Current?.TryFindResource(key) as string ?? fallback;
+
+        /// <summary>
+        /// Ручное сжатие контекста (T-000133). Автотриггер срабатывает у самого потолка —
+        /// эта кнопка даёт сжать раньше, когда пользователь сам видит, что диалог разросся.
+        ///
+        /// Сжатие НЕразрушающе: сервер сворачивает старую историю в rolling-summary, но самих
+        /// сообщений не трогает — лента у пользователя остаётся прежней. Поэтому в неё
+        /// добавляется только строка-checkpoint (её рендер уже есть, T-000130), а не «обрезка».
+        ///
+        /// Это обычный AI-вызов, и он списывается с баланса — поэтому кнопка, а не автоматика.
+        /// </summary>
+        private async Task CompactContextAsync()
+        {
+            if (string.IsNullOrEmpty(SessionId) || IsBusy) return;
+
+            IsBusy = true;
+            try
+            {
+                var r = await Api.CompactSessionAsync(SessionId);
+
+                var text = r.TokensBefore.HasValue && r.TokensAfterEstimate.HasValue
+                    ? string.Format(
+                        FindString("str_ContextCompactedFmt", "Контекст сжат: {0:N0} → ~{1:N0} токенов"),
+                        r.TokensBefore.Value, r.TokensAfterEstimate.Value)
+                    : FindString("str_ContextCompacted", "Контекст сжат");
+
+                Messages.Add(new ChatMessage { Role = Models.MessageRoles.Checkpoint, Content = text });
+                OnContextCompacted(r);
+            }
+            catch (ApiException ex) when (ex.ErrorCode == "COMPACTION_BELOW_FLOOR")
+            {
+                // Не ошибка, а «рано»: сервер бережёт от бессмысленного платного вызова.
+                // Показываем спокойной строкой, а не красным ⚠ через OnApiExceptionAsync.
+                Messages.Add(new ChatMessage
+                {
+                    Role = Models.MessageRoles.Checkpoint,
+                    Content = FindString("str_CompactBelowFloor",
+                        "Сжимать пока нечего — контекст ещё не набрался.")
+                });
+            }
+            catch (ApiException ex)
+            {
+                await OnApiExceptionAsync(ex);
+            }
+            catch (Exception ex)
+            {
+                await OnUnexpectedExceptionAsync(ex);
+            }
+            finally
+            {
+                IsBusy = false;
+            }
+        }
+
+        /// <summary>
+        /// Контекст сжали — продукт обновляет своё кольцо занятости. Значение сервера —
+        /// ОЦЕНКА: честный замер придёт на следующем AI-ходе.
+        /// </summary>
+        protected virtual void OnContextCompacted(CompactResponse response) { }
 
         /// <summary>
         /// Прервать активный chat-ход (submit /chat/async или его polling). Идемпотентно —

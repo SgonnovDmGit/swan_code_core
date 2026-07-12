@@ -131,4 +131,11 @@
     <sys:String x:Key="str_TaskBoard_SortTracker">Sort: by tracker</sys:String>
     <sys:String x:Key="str_TaskBoard_RemoveConfirm">Remove the task “{0}”?</sys:String>
     <sys:String x:Key="str_TaskBoard_RemoveConfirmTitle">Remove task</sys:String>
+
+    <!-- Context compaction (T-000133) -->
+    <sys:String x:Key="str_CompactContext">Compact context</sys:String>
+    <sys:String x:Key="str_CompactContextHint">Fold the older part of the dialog into a summary without waiting for the automatic trigger. Messages stay where they are. This is a billed AI call.</sys:String>
+    <sys:String x:Key="str_ContextCompactedFmt">Context compacted: {0:N0} → ~{1:N0} tokens</sys:String>
+    <sys:String x:Key="str_ContextCompacted">Context compacted</sys:String>
+    <sys:String x:Key="str_CompactBelowFloor">Nothing to compact yet — the context is still small.</sys:String>
 </ResourceDictionary>

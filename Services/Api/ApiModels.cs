@@ -669,6 +669,38 @@ namespace SwanCode.Core.Services.Api
         public SessionMessageDto[] Messages { get; set; } = Array.Empty<SessionMessageDto>();
     }
 
+    /// <summary>
+    /// Ответ POST /v1/api/sessions/{id}/compact (T-000133): ручное сжатие контекста —
+    /// старая история сворачивается в rolling-summary. Неразрушающе: сами сообщения
+    /// сервер не трогает, поэтому лента у пользователя остаётся как была.
+    /// </summary>
+    public class CompactResponse
+    {
+        [JsonPropertyName("serviceInfo")]
+        public ServiceInfo ServiceInfo { get; set; } = new();
+
+        [JsonPropertyName("sessionId")]
+        public string SessionId { get; set; } = string.Empty;
+
+        [JsonPropertyName("summary")]
+        public string Summary { get; set; } = string.Empty;
+
+        [JsonPropertyName("referencesCount")]
+        public int ReferencesCount { get; set; }
+
+        /// <summary>Модель, которой сжимали (может отличаться от модели диалога).</summary>
+        [JsonPropertyName("model")]
+        public string? Model { get; set; }
+
+        /// <summary>Занятость контекста на момент запуска. omitempty — «не измерено», не ноль.</summary>
+        [JsonPropertyName("tokensBefore")]
+        public int? TokensBefore { get; set; }
+
+        /// <summary>ОЦЕНКА занятости после сжатия — честный замер придёт на следующем ходу.</summary>
+        [JsonPropertyName("tokensAfterEstimate")]
+        public int? TokensAfterEstimate { get; set; }
+    }
+
     public class ApiException : Exception
     {
         public string ErrorCode { get; }
