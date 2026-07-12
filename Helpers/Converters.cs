@@ -326,4 +326,61 @@ namespace SwanCode.Core.Helpers
         public object[] ConvertBack(object value, Type[] targetTypes, object parameter, CultureInfo culture)
             => throw new NotImplementedException();
     }
+
+    /// <summary>
+    /// Уровень размышлений ↔ позиция ползунка. Шкала — серверный контракт REQ-007,
+    /// а не выдуманная: off | minimal | low | medium | high.
+    /// </summary>
+    public class ReasoningIndexConverter : IValueConverter
+    {
+        private static readonly string[] Levels = { "off", "minimal", "low", "medium", "high" };
+
+        public object Convert(object value, Type targetType, object parameter, CultureInfo culture)
+        {
+            var idx = Array.IndexOf(Levels, value as string ?? "off");
+            return (double)(idx < 0 ? 0 : idx);
+        }
+
+        public object ConvertBack(object value, Type targetType, object parameter, CultureInfo culture)
+        {
+            var idx = value switch { double d => (int)Math.Round(d), int i => i, _ => 0 };
+            return Levels[Math.Clamp(idx, 0, Levels.Length - 1)];
+        }
+    }
+
+    /// <summary>Уровень размышлений → подпись. Английские имена: русские разной длины,
+    /// и чип от них скачет по ширине.</summary>
+    public class ReasoningNameConverter : IValueConverter
+    {
+        public object Convert(object value, Type targetType, object parameter, CultureInfo culture) =>
+            (value as string) switch
+            {
+                "minimal" => "Minimal",
+                "low" => "Low",
+                "medium" => "Medium",
+                "high" => "High",
+                _ => "Off"
+            };
+
+        public object ConvertBack(object value, Type targetType, object parameter, CultureInfo culture) =>
+            throw new NotSupportedException();
+    }
+
+    /// <summary>Режим → подпись чипа. Берётся из словаря локализации, чтобы не хардкодить язык.</summary>
+    public class AssistModeNameConverter : IValueConverter
+    {
+        public object Convert(object value, Type targetType, object parameter, CultureInfo culture)
+        {
+            var key = (value as string) switch
+            {
+                "planning" => "str_ModePlanning",
+                "review" => "str_ModeReview",
+                _ => "str_ModeAuto"
+            };
+            return Application.Current?.TryFindResource(key) as string ?? key;
+        }
+
+        public object ConvertBack(object value, Type targetType, object parameter, CultureInfo culture) =>
+            throw new NotSupportedException();
+    }
 }

@@ -59,6 +59,23 @@
     <SolidColorBrush x:Key="ErrorColor" Color="#C93C32"/>
     <SolidColorBrush x:Key="ErrorBackground" Color="#FCEBE9"/>
 
+    <!-- Уровни размышлений (композер, мокап 2026-07-12): нарастание «серый → красный».
+         Наружу виден только кружок этого цвета рядом с моделью. -->
+    <SolidColorBrush x:Key="ReasoningOff" Color="#9AA4B0"/>
+    <SolidColorBrush x:Key="ReasoningMinimal" Color="#4A90D9"/>
+    <SolidColorBrush x:Key="ReasoningLow" Color="#2F9E6B"/>
+    <SolidColorBrush x:Key="ReasoningMedium" Color="#E08B2E"/>
+    <SolidColorBrush x:Key="ReasoningHigh" Color="#E03131"/>
+
+    <!-- Режимы: цвет по «развязанности рук», а не по светофору. Зелёный не берём —
+         он читается как «безопасно», а Авто самый рискованный. -->
+    <SolidColorBrush x:Key="ModePlanning" Color="#4A90D9"/>
+    <SolidColorBrush x:Key="ModePlanningBackground" Color="#E7F1FB"/>
+    <SolidColorBrush x:Key="ModeReview" Color="#A06BD4"/>
+    <SolidColorBrush x:Key="ModeReviewBackground" Color="#F1E9FA"/>
+    <SolidColorBrush x:Key="ModeAuto" Color="#D4553F"/>
+    <SolidColorBrush x:Key="ModeAutoBackground" Color="#FBE9E5"/>
+
     <!-- Заливка чипов статуса доски (см. Theme1C) -->
     <SolidColorBrush x:Key="StatusDoneBackground" Color="#DCF3EA"/>
     <SolidColorBrush x:Key="StatusProgressBackground" Color="#DCF0F5"/>

@@ -17,9 +17,40 @@ namespace SwanCode.Core.Chat.Views
     /// </summary>
     public partial class TaskBoardView : UserControl
     {
+        /// <summary>
+        /// Узкая колонка чата (открыта панель кода): доска прячет «наш №», трекер и ручку
+        /// перетаскивания, оставляя задачу, статус и «принял» (вариант C мокапа 2026-07-12).
+        /// </summary>
+        public static readonly DependencyProperty IsCompactProperty =
+            DependencyProperty.Register(nameof(IsCompact), typeof(bool), typeof(TaskBoardView),
+                new PropertyMetadata(false));
+
+        public bool IsCompact
+        {
+            get => (bool)GetValue(IsCompactProperty);
+            private set => SetValue(IsCompactProperty, value);
+        }
+
+        // Порог: ниже него 7 колонок налезают друг на друга (доска + композер меряны на мокапе).
+        private const double CompactBelow = 560;
+
         public TaskBoardView()
         {
             InitializeComponent();
+            SizeChanged += (_, __) => ApplyCompact();
+        }
+
+        private void ApplyCompact()
+        {
+            var compact = ActualWidth > 0 && ActualWidth < CompactBelow;
+            if (compact == IsCompact) return;
+
+            IsCompact = compact;
+
+            // Ширины колонок — общий источник для шапки и строк, поэтому схлопываем сам ресурс.
+            Resources["ColDrag"] = new GridLength(compact ? 0 : 26);
+            Resources["ColOurId"] = new GridLength(compact ? 0 : 58);
+            Resources["ColTracker"] = new GridLength(compact ? 0 : 104);
         }
 
         // Визуал перетаскивания (T-000127): призрак строки под курсором + линия места вставки.

@@ -38,7 +38,10 @@
     <!-- Chat skeleton (T-000046, v0.11.2). Shared keys for 1C and Universal chats. -->
 
     <!-- Composer -->
-    <sys:String x:Key="str_Chat_InputPlaceholder">Type a message…</sys:String>
+    <!-- The hint teaches the field: Enter sends, even though the box is multi-line.
+         "Describe the task" only fits at the start — mid-dialog the task is already described. -->
+    <sys:String x:Key="str_Chat_InputPlaceholder">Describe the task · Enter — send, Shift+Enter — new line</sys:String>
+    <sys:String x:Key="str_Chat_InputPlaceholderOngoing">Enter — send, Shift+Enter — new line</sys:String>
     <sys:String x:Key="str_Chat_InputHint">Enter — send, Shift+Enter — newline</sys:String>
     <sys:String x:Key="str_Chat_SendButton">Send</sys:String>
     <sys:String x:Key="str_Chat_NewChat">New dialog</sys:String>

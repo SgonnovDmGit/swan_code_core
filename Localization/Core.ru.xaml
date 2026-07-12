@@ -38,7 +38,10 @@
     <!-- Chat-каркас (T-000046, v0.11.2). Общие ключи для 1С и Universal чатов. -->
 
     <!-- Composer -->
-    <sys:String x:Key="str_Chat_InputPlaceholder">Написать сообщение…</sys:String>
+    <!-- Подсказка учит обращению с полем: Enter отправляет, хотя поле многострочное.
+         «Опишите задачу» уместно только в начале — в идущем диалоге задачу уже описали. -->
+    <sys:String x:Key="str_Chat_InputPlaceholder">Опишите задачу · Enter — отправить, Shift+Enter — новая строка</sys:String>
+    <sys:String x:Key="str_Chat_InputPlaceholderOngoing">Enter — отправить, Shift+Enter — новая строка</sys:String>
     <sys:String x:Key="str_Chat_InputHint">Enter — отправить, Shift+Enter — перенос</sys:String>
     <sys:String x:Key="str_Chat_SendButton">Отправить</sys:String>
     <sys:String x:Key="str_Chat_NewChat">Новый диалог</sys:String>

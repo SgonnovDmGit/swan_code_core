@@ -1,14 +1,29 @@
+using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
 
 namespace SwanCode.Core.Chat.Views
 {
     /// <summary>
-    /// Строка ввода на всю ширину окна (T-000074). DataContext — продуктовый
-    /// MainViewModel с ActiveChat и ProjectSettings (биндинги duck-typed по пути).
+    /// Композер: живёт под лентой чата, внутри колонки чата (T-000121). DataContext —
+    /// продуктовый MainViewModel с ActiveChat и ProjectSettings (биндинги duck-typed по пути).
     /// </summary>
     public partial class ChatInputBar : UserControl
     {
+        /// <summary>
+        /// Показывать чип режима (План/Ревью/Авто). Только 1С-клиент: у Universal нет
+        /// AssistMode в ProjectSettings, и чип привязался бы к несуществующему свойству.
+        /// </summary>
+        public static readonly DependencyProperty ShowModeChipProperty =
+            DependencyProperty.Register(nameof(ShowModeChip), typeof(bool), typeof(ChatInputBar),
+                new PropertyMetadata(false));
+
+        public bool ShowModeChip
+        {
+            get => (bool)GetValue(ShowModeChipProperty);
+            set => SetValue(ShowModeChipProperty, value);
+        }
+
         public ChatInputBar()
         {
             InitializeComponent();
@@ -27,5 +42,8 @@ namespace SwanCode.Core.Chat.Views
                 e.Handled = true;
             }
         }
+
+        // Выбор режима закрывает меню — иначе оно висит поверх ленты до клика мимо.
+        private void ModeItem_Click(object sender, RoutedEventArgs e) => ModeChip.IsChecked = false;
     }
 }

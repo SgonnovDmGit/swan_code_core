@@ -4,15 +4,20 @@
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
              xmlns:helpers="clr-namespace:SwanCode.Core.Helpers"
-             mc:Ignorable="d" d:DesignWidth="1000">
+             mc:Ignorable="d" d:DesignWidth="900">
     <!--
-      Строка ввода на всю ширину окна (T-000074, мокап 2026-07-06).
+      Композер (мокап 2026-07-12, принят). Живёт ПОД лентой чата, внутри колонки чата —
+      не строкой окна: иначе при открытой панели кода он «отрывается» от чата (T-000121).
+
       Контракт DataContext (продуктовый MainViewModel):
-        ActiveChat         : ChatViewModelBase (+ ContextFillPercent/ContextTokensDisplay у наследника)
-        ProjectSettings    : Models / SelectedModel / ReasoningSelection / ContextLengthText
-        IsSidebarCollapsed : bool, опционально (T-000111) — рейка: зона модели схлопывается
-                             до кружка контекста (46px). Нет свойства → зона всегда развёрнута.
-      Левая зона = ширина сайдбара (250): комбо модели над «Размышления», справа кружок контекста.
+        ActiveChat      : ChatViewModelBase (+ ContextFillPercent/ContextTokens)
+        ProjectSettings : Models / SelectedModel / ReasoningSelection / ContextLengthText
+                          / AssistMode (только 1С-клиент — см. ShowModeChip)
+
+      Всё, что относится к ходу, живёт ВНУТРИ поля ввода: чип модели (он же меню
+      «модель + размышления»), кольцо контекста, чип режима, кнопка отправки.
+      Композер обязан оставаться пригодным и на всю ширину (Universal держит его строкой
+      окна) — поэтому читаемый максимум задаётся здесь, внутри, а не снаружи.
     -->
     <UserControl.Resources>
         <helpers:BoolToVisibilityConverter x:Key="BoolToVis"/>
@@ -21,276 +26,501 @@
         <helpers:PercentToArcConverter x:Key="PercentToArc"/>
         <helpers:ContextZoneConverter x:Key="CtxZone"/>
         <helpers:ModelFitsContextConverter x:Key="ModelFits"/>
-        <helpers:IsNullConverter x:Key="IsNullConv"/>
+        <helpers:ReasoningIndexConverter x:Key="ReasoningIndex"/>
+        <helpers:ReasoningNameConverter x:Key="ReasoningName"/>
+        <helpers:AssistModeNameConverter x:Key="AssistModeName"/>
+
+        <!-- Чип: кликабелен без каретки — рука + подсветка (решение по мокапу) -->
+        <Style x:Key="ChipToggle" TargetType="ToggleButton">
+            <Setter Property="Cursor" Value="Hand"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="ToggleButton">
+                        <Border x:Name="bd"
+                                Background="{DynamicResource PrimaryBackground}"
+                                BorderBrush="{DynamicResource BorderColor}" BorderThickness="1"
+                                CornerRadius="13" Padding="9,4">
+                            <ContentPresenter VerticalAlignment="Center"/>
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="bd" Property="Background" Value="{DynamicResource ButtonHoverBackground}"/>
+                                <Setter TargetName="bd" Property="BorderBrush" Value="{DynamicResource SecondaryForeground}"/>
+                            </Trigger>
+                            <Trigger Property="IsChecked" Value="True">
+                                <Setter TargetName="bd" Property="Background" Value="{DynamicResource ButtonHoverBackground}"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <!-- Чип режима: прямоугольник со слабым скруглением. Пилюля с квадратом внутри
+             читалась как кнопка «стоп» — отсюда прямые углы и заливка цветом режима. -->
+        <Style x:Key="ModeChipToggle" TargetType="ToggleButton" BasedOn="{StaticResource ChipToggle}">
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="ToggleButton">
+                        <Border x:Name="bd" BorderThickness="1" CornerRadius="5" Padding="10,4"
+                                Background="{TemplateBinding Background}"
+                                BorderBrush="{TemplateBinding BorderBrush}">
+                            <ContentPresenter VerticalAlignment="Center"/>
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="bd" Property="Opacity" Value="0.85"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <Style x:Key="PopupCard" TargetType="Border">
+            <Setter Property="Background" Value="{DynamicResource PopupBackground}"/>
+            <Setter Property="BorderBrush" Value="{DynamicResource PopupBorder}"/>
+            <Setter Property="BorderThickness" Value="1"/>
+            <Setter Property="CornerRadius" Value="10"/>
+            <Setter Property="Padding" Value="7"/>
+        </Style>
+
+        <Style x:Key="PopupHead" TargetType="TextBlock">
+            <Setter Property="FontSize" Value="10"/>
+            <Setter Property="FontWeight" Value="Bold"/>
+            <Setter Property="Foreground" Value="{DynamicResource SecondaryForeground}"/>
+            <Setter Property="Margin" Value="8,5,8,4"/>
+        </Style>
     </UserControl.Resources>
 
     <Border Background="{DynamicResource SecondaryBackground}"
             BorderBrush="{DynamicResource BorderColor}"
             BorderThickness="0,1,0,0">
-        <Grid>
-            <Grid.ColumnDefinitions>
-                <ColumnDefinition Width="Auto"/>
-                <ColumnDefinition Width="*"/>
-                <ColumnDefinition Width="Auto"/>
-            </Grid.ColumnDefinitions>
 
-            <!-- ===== Левая зона: модель + размышления + кружок (граница сайдбара продолжается).
-                 В рейке (T-000111) остаётся только кружок контекста по центру. ===== -->
-            <Border Grid.Column="0"
-                    BorderBrush="{DynamicResource BorderColor}"
-                    BorderThickness="0,0,1,0">
-                <Border.Style>
-                    <Style TargetType="Border">
-                        <Setter Property="Width" Value="250"/>
-                        <Setter Property="Padding" Value="10,8"/>
-                        <Style.Triggers>
-                            <DataTrigger Binding="{Binding IsSidebarCollapsed}" Value="True">
-                                <Setter Property="Width" Value="46"/>
-                                <Setter Property="Padding" Value="0,8"/>
-                            </DataTrigger>
-                        </Style.Triggers>
-                    </Style>
-                </Border.Style>
-                <Grid VerticalAlignment="Center">
-                    <Grid.ColumnDefinitions>
-                        <ColumnDefinition Width="*"/>
-                        <ColumnDefinition Width="Auto"/>
-                    </Grid.ColumnDefinitions>
+        <!-- Читаемый максимум: на широком окне композер не растягивается на всю ширину,
+             на узкой колонке просто занимает доступное. -->
+        <Grid MaxWidth="760" Margin="14,10,14,12">
+            <Border Background="{DynamicResource InputBackground}"
+                    BorderBrush="{DynamicResource InputBorder}"
+                    BorderThickness="1" CornerRadius="12">
+                <Grid>
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="Auto"/>
+                    </Grid.RowDefinitions>
 
-                    <StackPanel Grid.Column="0">
-                        <StackPanel.Style>
-                            <Style TargetType="StackPanel">
-                                <Style.Triggers>
-                                    <DataTrigger Binding="{Binding IsSidebarCollapsed}" Value="True">
-                                        <Setter Property="Visibility" Value="Collapsed"/>
-                                    </DataTrigger>
-                                </Style.Triggers>
-                            </Style>
-                        </StackPanel.Style>
-                        <!-- Комбо модели: DisplayName + окно; не влезающие — задизейблены -->
-                        <ComboBox ItemsSource="{Binding ProjectSettings.Models}"
-                                  SelectedItem="{Binding ProjectSettings.SelectedModel}"
-                                  FontSize="12"
-                                  ToolTip="{DynamicResource str_ModelComboHint}">
-                            <ComboBox.ItemTemplate>
-                                <DataTemplate>
-                                    <!-- В закрытом боксе — только имя (узкая зона); окно+цены —
-                                         только в выпадашке (триггер: есть предок ComboBoxItem) -->
-                                    <DockPanel x:Name="row">
-                                        <StackPanel x:Name="meta" DockPanel.Dock="Right" Orientation="Horizontal"
-                                                    Margin="12,0,0,0" VerticalAlignment="Center"
-                                                    Visibility="Collapsed">
-                                            <TextBlock Text="{Binding DisplayContext}" FontSize="10.5"
-                                                       Foreground="{DynamicResource SecondaryForeground}"/>
-                                            <TextBlock Text=" · " FontSize="10.5"
-                                                       Foreground="{DynamicResource SecondaryForeground}"/>
-                                            <TextBlock Text="{Binding DisplayPrice}" FontSize="10.5"
-                                                       Foreground="{DynamicResource SecondaryForeground}"/>
-                                        </StackPanel>
-                                        <TextBlock Text="{Binding Name}" TextTrimming="CharacterEllipsis"/>
-                                    </DockPanel>
-                                    <DataTemplate.Triggers>
-                                        <DataTrigger Value="False">
-                                            <DataTrigger.Binding>
-                                                <Binding RelativeSource="{RelativeSource FindAncestor, AncestorType=ComboBoxItem}"
-                                                         Converter="{StaticResource IsNullConv}"/>
-                                            </DataTrigger.Binding>
-                                            <Setter TargetName="meta" Property="Visibility" Value="Visible"/>
-                                            <Setter TargetName="row" Property="MinWidth" Value="210"/>
-                                        </DataTrigger>
-                                    </DataTemplate.Triggers>
-                                </DataTemplate>
-                            </ComboBox.ItemTemplate>
-                            <ComboBox.ItemContainerStyle>
-                                <Style TargetType="ComboBoxItem" BasedOn="{StaticResource {x:Type ComboBoxItem}}">
-                                    <Setter Property="IsEnabled">
-                                        <Setter.Value>
-                                            <MultiBinding Converter="{StaticResource ModelFits}">
-                                                <Binding Path="ContextLength"/>
-                                                <Binding Path="DataContext.ActiveChat.ContextTokens"
-                                                         RelativeSource="{RelativeSource AncestorType=UserControl}"/>
-                                            </MultiBinding>
-                                        </Setter.Value>
-                                    </Setter>
+                    <!-- ===== Поле ввода. Подсказка по центру (решение по мокапу). ===== -->
+                    <Grid Grid.Row="0" Margin="4,4,4,0">
+                        <TextBox x:Name="InputTextBox"
+                                 Text="{Binding ActiveChat.InputText, UpdateSourceTrigger=PropertyChanged}"
+                                 AcceptsReturn="True" TextWrapping="Wrap"
+                                 MinHeight="46" MaxHeight="150"
+                                 Background="Transparent" BorderThickness="0"
+                                 Padding="8,7"
+                                 VerticalScrollBarVisibility="Auto"
+                                 PreviewKeyDown="InputTextBox_PreviewKeyDown"/>
+                        <!-- Курсив + приглушение: иначе подсказка читается как уже набранный текст.
+                             «Опишите задачу» — только пока диалог пуст; дальше остаются
+                             горячие клавиши (задачу уже описали, повторять незачем). -->
+                        <TextBlock IsHitTestVisible="False"
+                                   Foreground="{DynamicResource SecondaryForeground}"
+                                   FontStyle="Italic" FontSize="11.5" Opacity="0.7"
+                                   TextTrimming="CharacterEllipsis" Margin="10,0"
+                                   HorizontalAlignment="Center" VerticalAlignment="Center"
+                                   Visibility="{Binding Text, ElementName=InputTextBox, Converter={StaticResource EmptyToVis}}">
+                            <TextBlock.Style>
+                                <Style TargetType="TextBlock">
+                                    <Setter Property="Text" Value="{DynamicResource str_Chat_InputPlaceholderOngoing}"/>
                                     <Style.Triggers>
-                                        <Trigger Property="IsEnabled" Value="False">
-                                            <Setter Property="Opacity" Value="0.45"/>
-                                            <Setter Property="ToolTip" Value="{DynamicResource str_ModelTooSmall}"/>
-                                            <Setter Property="ToolTipService.ShowOnDisabled" Value="True"/>
-                                        </Trigger>
-                                    </Style.Triggers>
-                                </Style>
-                            </ComboBox.ItemContainerStyle>
-                        </ComboBox>
-
-                        <!-- Размышления: янтарный селектор уровня -->
-                        <DockPanel Margin="0,6,0,0">
-                            <TextBlock Text="{DynamicResource str_Reasoning}"
-                                       FontSize="11" VerticalAlignment="Center"
-                                       Foreground="{DynamicResource SecondaryForeground}"/>
-                            <ComboBox DockPanel.Dock="Right" HorizontalAlignment="Right"
-                                      MinWidth="110" FontSize="11.5"
-                                      Foreground="{DynamicResource ReasoningForeground}"
-                                      SelectedValuePath="Tag"
-                                      SelectedValue="{Binding ProjectSettings.ReasoningSelection}"
-                                      ToolTip="{DynamicResource str_ReasoningEffortHelp}">
-                                <ComboBoxItem Content="{DynamicResource str_ReasoningOff}" Tag="off"/>
-                                <ComboBoxItem Content="{DynamicResource str_EffortMinimal}" Tag="minimal"/>
-                                <ComboBoxItem Content="{DynamicResource str_EffortLow}" Tag="low"/>
-                                <ComboBoxItem Content="{DynamicResource str_EffortMedium}" Tag="medium"/>
-                                <ComboBoxItem Content="{DynamicResource str_EffortHigh}" Tag="high"/>
-                            </ComboBox>
-                        </DockPanel>
-                    </StackPanel>
-
-                    <!-- Кружок контекста: дуга = заполнение; мята → янтарь ≥70% → красный >90%.
-                         В рейке — единственный видимый элемент зоны, по центру. -->
-                    <Grid Width="27" Height="27" VerticalAlignment="Center"
-                          Background="Transparent"
-                          ToolTipService.InitialShowDelay="150">
-                        <Grid.Style>
-                            <Style TargetType="Grid">
-                                <Setter Property="Margin" Value="10,0,0,0"/>
-                                <Setter Property="Grid.Column" Value="1"/>
-                                <Style.Triggers>
-                                    <DataTrigger Binding="{Binding IsSidebarCollapsed}" Value="True">
-                                        <Setter Property="Margin" Value="0"/>
-                                        <Setter Property="Grid.Column" Value="0"/>
-                                        <Setter Property="Grid.ColumnSpan" Value="2"/>
-                                        <Setter Property="HorizontalAlignment" Value="Center"/>
-                                    </DataTrigger>
-                                </Style.Triggers>
-                            </Style>
-                        </Grid.Style>
-                        <!-- Трек — BorderColor: TertiaryBackground сливался с фоном строки ввода -->
-                        <Ellipse Stroke="{DynamicResource BorderColor}" StrokeThickness="3.6"
-                                 Width="24.6" Height="24.6" Opacity="0.7"/>
-                        <Path StrokeThickness="3.6"
-                              StrokeStartLineCap="Round" StrokeEndLineCap="Round"
-                              Data="{Binding ActiveChat.ContextFillPercent, Converter={StaticResource PercentToArc}}">
-                            <Path.Style>
-                                <Style TargetType="Path">
-                                    <Setter Property="Stroke" Value="{DynamicResource AccentColor}"/>
-                                    <Style.Triggers>
-                                        <DataTrigger Binding="{Binding ActiveChat.ContextFillPercent, Converter={StaticResource CtxZone}}" Value="warn">
-                                            <Setter Property="Stroke" Value="{DynamicResource ReasoningForeground}"/>
-                                        </DataTrigger>
-                                        <DataTrigger Binding="{Binding ActiveChat.ContextFillPercent, Converter={StaticResource CtxZone}}" Value="crit">
-                                            <Setter Property="Stroke" Value="{DynamicResource ErrorColor}"/>
+                                        <DataTrigger Binding="{Binding ActiveChat.Messages.Count}" Value="0">
+                                            <Setter Property="Text" Value="{DynamicResource str_Chat_InputPlaceholder}"/>
                                         </DataTrigger>
                                     </Style.Triggers>
                                 </Style>
-                            </Path.Style>
-                        </Path>
-                        <Grid.ToolTip>
-                            <ToolTip Background="{DynamicResource PopupBackground}"
-                                     BorderBrush="{DynamicResource PopupBorder}"
-                                     Foreground="{DynamicResource PrimaryForeground}">
-                                <StackPanel MinWidth="170" Margin="4">
-                                    <DockPanel Margin="0,2"><TextBlock Text="{DynamicResource str_CtxTooltipUsed}" Foreground="{DynamicResource SecondaryForeground}" FontSize="12"/><TextBlock DockPanel.Dock="Right" HorizontalAlignment="Right" Text="{Binding ActiveChat.ContextTokens, StringFormat={}{0:N0}}" FontSize="12" Margin="12,0,0,0"/></DockPanel>
-                                    <DockPanel Margin="0,2"><TextBlock Text="{DynamicResource str_CtxTooltipWindow}" Foreground="{DynamicResource SecondaryForeground}" FontSize="12"/><TextBlock DockPanel.Dock="Right" HorizontalAlignment="Right" Text="{Binding ProjectSettings.ContextLengthText}" FontSize="12" Margin="12,0,0,0"/></DockPanel>
-                                    <!-- Итоговая строка — цветом зоны заполнения (мята/янтарь/красный) -->
-                                    <DockPanel Margin="0,2">
-                                        <DockPanel.Resources>
-                                            <Style x:Key="ZoneText" TargetType="TextBlock">
-                                                <Setter Property="Foreground" Value="{DynamicResource AccentColor}"/>
-                                                <Setter Property="FontSize" Value="12"/>
+                            </TextBlock.Style>
+                        </TextBlock>
+                    </Grid>
+
+                    <!-- ===== Нижняя кромка поля: модель+размышления · контекст · режим · отправка ===== -->
+                    <Grid Grid.Row="1" Margin="7,4,7,7">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="Auto"/>
+                            <ColumnDefinition Width="Auto"/>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="Auto"/>
+                            <ColumnDefinition Width="Auto"/>
+                        </Grid.ColumnDefinitions>
+
+                        <!-- === Чип модели: открывает меню «модель + размышления» === -->
+                        <ToggleButton x:Name="ModelChip" Grid.Column="0"
+                                      Style="{StaticResource ChipToggle}"
+                                      ToolTip="{DynamicResource str_ModelAndReasoning}">
+                            <StackPanel Orientation="Horizontal">
+                                <TextBlock Text="{Binding ProjectSettings.SelectedModel.Name}"
+                                           FontSize="11" MaxWidth="150"
+                                           TextTrimming="CharacterEllipsis"
+                                           VerticalAlignment="Center"
+                                           Foreground="{DynamicResource PrimaryForeground}"/>
+                                <!-- Уровень размышлений наружу = только цветной кружок -->
+                                <Ellipse Width="9" Height="9" Margin="6,0,0,0" VerticalAlignment="Center">
+                                    <Ellipse.Style>
+                                        <Style TargetType="Ellipse">
+                                            <Setter Property="Fill" Value="{DynamicResource ReasoningOff}"/>
+                                            <Style.Triggers>
+                                                <DataTrigger Binding="{Binding ProjectSettings.ReasoningSelection}" Value="minimal">
+                                                    <Setter Property="Fill" Value="{DynamicResource ReasoningMinimal}"/>
+                                                </DataTrigger>
+                                                <DataTrigger Binding="{Binding ProjectSettings.ReasoningSelection}" Value="low">
+                                                    <Setter Property="Fill" Value="{DynamicResource ReasoningLow}"/>
+                                                </DataTrigger>
+                                                <DataTrigger Binding="{Binding ProjectSettings.ReasoningSelection}" Value="medium">
+                                                    <Setter Property="Fill" Value="{DynamicResource ReasoningMedium}"/>
+                                                </DataTrigger>
+                                                <DataTrigger Binding="{Binding ProjectSettings.ReasoningSelection}" Value="high">
+                                                    <Setter Property="Fill" Value="{DynamicResource ReasoningHigh}"/>
+                                                </DataTrigger>
+                                            </Style.Triggers>
+                                        </Style>
+                                    </Ellipse.Style>
+                                    <Ellipse.ToolTip>
+                                        <ToolTip>
+                                            <TextBlock>
+                                                <Run Text="{DynamicResource str_Reasoning}"/><Run Text=": "/><Run
+                                                    Text="{Binding ProjectSettings.ReasoningSelection, Converter={StaticResource ReasoningName}, Mode=OneWay}"/>
+                                            </TextBlock>
+                                        </ToolTip>
+                                    </Ellipse.ToolTip>
+                                </Ellipse>
+                            </StackPanel>
+                        </ToggleButton>
+
+                        <!-- Меню раскрывается ВВЕРХ -->
+                        <Popup IsOpen="{Binding IsChecked, ElementName=ModelChip, Mode=TwoWay}"
+                               PlacementTarget="{Binding ElementName=ModelChip}"
+                               Placement="Top" VerticalOffset="-6"
+                               StaysOpen="False" AllowsTransparency="True" PopupAnimation="Fade">
+                            <Border Style="{StaticResource PopupCard}" MinWidth="290">
+                                <StackPanel>
+                                    <TextBlock Text="{DynamicResource str_Model}" Style="{StaticResource PopupHead}"/>
+                                    <ListBox ItemsSource="{Binding ProjectSettings.Models}"
+                                             SelectedItem="{Binding ProjectSettings.SelectedModel}"
+                                             MaxHeight="260" BorderThickness="0"
+                                             Background="Transparent"
+                                             ScrollViewer.HorizontalScrollBarVisibility="Disabled">
+                                        <ListBox.ItemContainerStyle>
+                                            <Style TargetType="ListBoxItem">
+                                                <Setter Property="Padding" Value="8,5"/>
+                                                <Setter Property="HorizontalContentAlignment" Value="Stretch"/>
                                                 <Style.Triggers>
-                                                    <DataTrigger Binding="{Binding ActiveChat.ContextFillPercent, Converter={StaticResource CtxZone}}" Value="warn">
-                                                        <Setter Property="Foreground" Value="{DynamicResource ReasoningForeground}"/>
-                                                    </DataTrigger>
-                                                    <DataTrigger Binding="{Binding ActiveChat.ContextFillPercent, Converter={StaticResource CtxZone}}" Value="crit">
-                                                        <Setter Property="Foreground" Value="{DynamicResource ErrorColor}"/>
+                                                    <!-- Модели, в которые диалог уже не влезает, — задизейблены -->
+                                                    <DataTrigger Value="False">
+                                                        <DataTrigger.Binding>
+                                                            <MultiBinding Converter="{StaticResource ModelFits}">
+                                                                <Binding Path="ContextLength"/>
+                                                                <Binding Path="DataContext.ActiveChat.ContextTokens"
+                                                                         RelativeSource="{RelativeSource AncestorType=UserControl}"/>
+                                                            </MultiBinding>
+                                                        </DataTrigger.Binding>
+                                                        <Setter Property="IsEnabled" Value="False"/>
+                                                        <Setter Property="Opacity" Value="0.45"/>
+                                                        <Setter Property="ToolTip" Value="{DynamicResource str_ModelTooSmall}"/>
+                                                        <Setter Property="ToolTipService.ShowOnDisabled" Value="True"/>
                                                     </DataTrigger>
                                                 </Style.Triggers>
                                             </Style>
-                                        </DockPanel.Resources>
-                                        <TextBlock Style="{StaticResource ZoneText}" Text="{DynamicResource str_CtxTooltipFill}"/>
-                                        <TextBlock Style="{StaticResource ZoneText}" DockPanel.Dock="Right" HorizontalAlignment="Right"
-                                                   Text="{Binding ActiveChat.ContextFillPercent, StringFormat={}{0:F0}%}"
-                                                   FontWeight="SemiBold" Margin="12,0,0,0"/>
-                                    </DockPanel>
+                                        </ListBox.ItemContainerStyle>
+                                        <ListBox.ItemTemplate>
+                                            <DataTemplate>
+                                                <DockPanel>
+                                                    <TextBlock DockPanel.Dock="Right" Text="{Binding DisplayPrice}"
+                                                               FontSize="10.5" Margin="10,0,0,0"
+                                                               VerticalAlignment="Center"
+                                                               Foreground="{DynamicResource SecondaryForeground}"/>
+                                                    <TextBlock DockPanel.Dock="Right" Text="{Binding DisplayContext}"
+                                                               FontSize="10.5" Margin="10,0,0,0"
+                                                               VerticalAlignment="Center"
+                                                               Foreground="{DynamicResource SecondaryForeground}"/>
+                                                    <TextBlock Text="{Binding Name}" FontSize="12"
+                                                               TextTrimming="CharacterEllipsis"
+                                                               VerticalAlignment="Center"/>
+                                                </DockPanel>
+                                            </DataTemplate>
+                                        </ListBox.ItemTemplate>
+                                    </ListBox>
+
+                                    <Separator Margin="6,6" Background="{DynamicResource BorderColor}"/>
+
+                                    <TextBlock Text="{DynamicResource str_Reasoning}" Style="{StaticResource PopupHead}"/>
+                                    <!-- Ползунок на 5 положений: off | minimal | low | medium | high.
+                                         Это существующий серверный контракт (REQ-007), не выдуманная шкала. -->
+                                    <Slider Margin="10,2,10,0"
+                                            Minimum="0" Maximum="4" TickFrequency="1"
+                                            IsSnapToTickEnabled="True" TickPlacement="BottomRight"
+                                            Value="{Binding ProjectSettings.ReasoningSelection, Converter={StaticResource ReasoningIndex}, Mode=TwoWay}"
+                                            ToolTip="{DynamicResource str_ReasoningEffortHelp}"/>
+                                    <TextBlock HorizontalAlignment="Center" Margin="0,3,0,4"
+                                               FontSize="12" FontWeight="Bold"
+                                               Text="{Binding ProjectSettings.ReasoningSelection, Converter={StaticResource ReasoningName}, Mode=OneWay}">
+                                        <TextBlock.Style>
+                                            <Style TargetType="TextBlock">
+                                                <Setter Property="Foreground" Value="{DynamicResource ReasoningOff}"/>
+                                                <Style.Triggers>
+                                                    <DataTrigger Binding="{Binding ProjectSettings.ReasoningSelection}" Value="minimal">
+                                                        <Setter Property="Foreground" Value="{DynamicResource ReasoningMinimal}"/>
+                                                    </DataTrigger>
+                                                    <DataTrigger Binding="{Binding ProjectSettings.ReasoningSelection}" Value="low">
+                                                        <Setter Property="Foreground" Value="{DynamicResource ReasoningLow}"/>
+                                                    </DataTrigger>
+                                                    <DataTrigger Binding="{Binding ProjectSettings.ReasoningSelection}" Value="medium">
+                                                        <Setter Property="Foreground" Value="{DynamicResource ReasoningMedium}"/>
+                                                    </DataTrigger>
+                                                    <DataTrigger Binding="{Binding ProjectSettings.ReasoningSelection}" Value="high">
+                                                        <Setter Property="Foreground" Value="{DynamicResource ReasoningHigh}"/>
+                                                    </DataTrigger>
+                                                </Style.Triggers>
+                                            </Style>
+                                        </TextBlock.Style>
+                                    </TextBlock>
                                 </StackPanel>
-                            </ToolTip>
-                        </Grid.ToolTip>
+                            </Border>
+                        </Popup>
+
+                        <!-- === Кольцо контекста: стоит вплотную к модели === -->
+                        <Grid Grid.Column="1" Width="24" Height="24" Margin="8,0,0,0"
+                              VerticalAlignment="Center" Background="Transparent"
+                              ToolTipService.InitialShowDelay="150">
+                            <Ellipse Stroke="{DynamicResource BorderColor}" StrokeThickness="3.2"
+                                     Width="21.5" Height="21.5" Opacity="0.7"/>
+                            <Path StrokeThickness="3.2"
+                                  StrokeStartLineCap="Round" StrokeEndLineCap="Round"
+                                  Data="{Binding ActiveChat.ContextFillPercent, Converter={StaticResource PercentToArc}}">
+                                <Path.Style>
+                                    <Style TargetType="Path">
+                                        <Setter Property="Stroke" Value="{DynamicResource AccentColor}"/>
+                                        <Style.Triggers>
+                                            <DataTrigger Binding="{Binding ActiveChat.ContextFillPercent, Converter={StaticResource CtxZone}}" Value="warn">
+                                                <Setter Property="Stroke" Value="{DynamicResource ReasoningForeground}"/>
+                                            </DataTrigger>
+                                            <DataTrigger Binding="{Binding ActiveChat.ContextFillPercent, Converter={StaticResource CtxZone}}" Value="crit">
+                                                <Setter Property="Stroke" Value="{DynamicResource ErrorColor}"/>
+                                            </DataTrigger>
+                                        </Style.Triggers>
+                                    </Style>
+                                </Path.Style>
+                            </Path>
+                            <Grid.ToolTip>
+                                <ToolTip Background="{DynamicResource PopupBackground}"
+                                         BorderBrush="{DynamicResource PopupBorder}"
+                                         Foreground="{DynamicResource PrimaryForeground}">
+                                    <StackPanel MinWidth="170" Margin="4">
+                                        <DockPanel Margin="0,2"><TextBlock Text="{DynamicResource str_CtxTooltipUsed}" Foreground="{DynamicResource SecondaryForeground}" FontSize="12"/><TextBlock DockPanel.Dock="Right" HorizontalAlignment="Right" Text="{Binding ActiveChat.ContextTokens, StringFormat={}{0:N0}}" FontSize="12" Margin="12,0,0,0"/></DockPanel>
+                                        <DockPanel Margin="0,2"><TextBlock Text="{DynamicResource str_CtxTooltipWindow}" Foreground="{DynamicResource SecondaryForeground}" FontSize="12"/><TextBlock DockPanel.Dock="Right" HorizontalAlignment="Right" Text="{Binding ProjectSettings.ContextLengthText}" FontSize="12" Margin="12,0,0,0"/></DockPanel>
+                                        <DockPanel Margin="0,2">
+                                            <DockPanel.Resources>
+                                                <Style x:Key="ZoneText" TargetType="TextBlock">
+                                                    <Setter Property="Foreground" Value="{DynamicResource AccentColor}"/>
+                                                    <Setter Property="FontSize" Value="12"/>
+                                                    <Style.Triggers>
+                                                        <DataTrigger Binding="{Binding ActiveChat.ContextFillPercent, Converter={StaticResource CtxZone}}" Value="warn">
+                                                            <Setter Property="Foreground" Value="{DynamicResource ReasoningForeground}"/>
+                                                        </DataTrigger>
+                                                        <DataTrigger Binding="{Binding ActiveChat.ContextFillPercent, Converter={StaticResource CtxZone}}" Value="crit">
+                                                            <Setter Property="Foreground" Value="{DynamicResource ErrorColor}"/>
+                                                        </DataTrigger>
+                                                    </Style.Triggers>
+                                                </Style>
+                                            </DockPanel.Resources>
+                                            <TextBlock Style="{StaticResource ZoneText}" Text="{DynamicResource str_CtxTooltipFill}"/>
+                                            <TextBlock Style="{StaticResource ZoneText}" DockPanel.Dock="Right" HorizontalAlignment="Right"
+                                                       Text="{Binding ActiveChat.ContextFillPercent, StringFormat={}{0:F0}%}"
+                                                       FontWeight="SemiBold" Margin="12,0,0,0"/>
+                                        </DockPanel>
+                                    </StackPanel>
+                                </ToolTip>
+                            </Grid.ToolTip>
+                        </Grid>
+
+                        <!-- === Чип режима (только 1С-клиент: ShowModeChip=True) === -->
+                        <ToggleButton x:Name="ModeChip" Grid.Column="3"
+                                      Margin="0,0,8,0"
+                                      Visibility="{Binding ShowModeChip, RelativeSource={RelativeSource AncestorType=UserControl},
+                                                   Converter={StaticResource BoolToVis}}">
+                            <ToggleButton.Resources>
+                                <!-- Заливка/рамка/текст — цвет режима. Цвет по «развязанности рук»:
+                                     План (смотрит) → Ревью (пишет в песочницу) → Авто (правит сам). -->
+                                <Style TargetType="TextBlock">
+                                    <Setter Property="FontSize" Value="11"/>
+                                    <Setter Property="FontWeight" Value="SemiBold"/>
+                                </Style>
+                            </ToggleButton.Resources>
+                            <ToggleButton.Style>
+                                <Style TargetType="ToggleButton" BasedOn="{StaticResource ModeChipToggle}">
+                                    <Setter Property="Background" Value="{DynamicResource ModeAutoBackground}"/>
+                                    <Setter Property="BorderBrush" Value="{DynamicResource ModeAuto}"/>
+                                    <Setter Property="Foreground" Value="{DynamicResource ModeAuto}"/>
+                                    <Style.Triggers>
+                                        <DataTrigger Binding="{Binding ProjectSettings.AssistMode}" Value="planning">
+                                            <Setter Property="Background" Value="{DynamicResource ModePlanningBackground}"/>
+                                            <Setter Property="BorderBrush" Value="{DynamicResource ModePlanning}"/>
+                                            <Setter Property="Foreground" Value="{DynamicResource ModePlanning}"/>
+                                        </DataTrigger>
+                                        <DataTrigger Binding="{Binding ProjectSettings.AssistMode}" Value="review">
+                                            <Setter Property="Background" Value="{DynamicResource ModeReviewBackground}"/>
+                                            <Setter Property="BorderBrush" Value="{DynamicResource ModeReview}"/>
+                                            <Setter Property="Foreground" Value="{DynamicResource ModeReview}"/>
+                                        </DataTrigger>
+                                    </Style.Triggers>
+                                </Style>
+                            </ToggleButton.Style>
+                            <TextBlock Text="{Binding ProjectSettings.AssistMode, Converter={StaticResource AssistModeName}, Mode=OneWay}"
+                                       Foreground="{Binding Foreground, RelativeSource={RelativeSource AncestorType=ToggleButton}}"/>
+                        </ToggleButton>
+
+                        <Popup IsOpen="{Binding IsChecked, ElementName=ModeChip, Mode=TwoWay}"
+                               PlacementTarget="{Binding ElementName=ModeChip}"
+                               Placement="Top" VerticalOffset="-6"
+                               StaysOpen="False" AllowsTransparency="True" PopupAnimation="Fade">
+                            <Border Style="{StaticResource PopupCard}" MinWidth="230">
+                                <StackPanel>
+                                    <TextBlock Text="{DynamicResource str_Mode}" Style="{StaticResource PopupHead}"/>
+                                    <RadioButton GroupName="ModeMenu" Tag="planning" Click="ModeItem_Click"
+                                                 IsChecked="{Binding ProjectSettings.IsModePlanning, Mode=TwoWay}">
+                                        <RadioButton.Template>
+                                            <ControlTemplate TargetType="RadioButton">
+                                                <Border x:Name="bd" Background="Transparent" CornerRadius="6" Padding="8,6" Cursor="Hand">
+                                                    <StackPanel Orientation="Horizontal">
+                                                        <Rectangle Width="11" Height="11" RadiusX="3" RadiusY="3"
+                                                                   Fill="{DynamicResource ModePlanning}" VerticalAlignment="Center"/>
+                                                        <StackPanel Margin="8,0,0,0">
+                                                            <TextBlock Text="{DynamicResource str_ModePlanning}" FontSize="12" FontWeight="SemiBold"/>
+                                                            <TextBlock Text="{DynamicResource str_ModePlanningHint}" FontSize="10.5"
+                                                                       Foreground="{DynamicResource SecondaryForeground}"/>
+                                                        </StackPanel>
+                                                    </StackPanel>
+                                                </Border>
+                                                <ControlTemplate.Triggers>
+                                                    <Trigger Property="IsMouseOver" Value="True">
+                                                        <Setter TargetName="bd" Property="Background" Value="{DynamicResource ButtonHoverBackground}"/>
+                                                    </Trigger>
+                                                    <Trigger Property="IsChecked" Value="True">
+                                                        <Setter TargetName="bd" Property="Background" Value="{DynamicResource MenuHoverBackground}"/>
+                                                    </Trigger>
+                                                </ControlTemplate.Triggers>
+                                            </ControlTemplate>
+                                        </RadioButton.Template>
+                                    </RadioButton>
+
+                                    <RadioButton GroupName="ModeMenu" Tag="review" Click="ModeItem_Click"
+                                                 IsChecked="{Binding ProjectSettings.IsModeReview, Mode=TwoWay}">
+                                        <RadioButton.Template>
+                                            <ControlTemplate TargetType="RadioButton">
+                                                <Border x:Name="bd" Background="Transparent" CornerRadius="6" Padding="8,6" Cursor="Hand">
+                                                    <StackPanel Orientation="Horizontal">
+                                                        <Rectangle Width="11" Height="11" RadiusX="3" RadiusY="3"
+                                                                   Fill="{DynamicResource ModeReview}" VerticalAlignment="Center"/>
+                                                        <StackPanel Margin="8,0,0,0">
+                                                            <TextBlock Text="{DynamicResource str_ModeReview}" FontSize="12" FontWeight="SemiBold"/>
+                                                            <TextBlock Text="{DynamicResource str_ModeReviewHint}" FontSize="10.5"
+                                                                       Foreground="{DynamicResource SecondaryForeground}"/>
+                                                        </StackPanel>
+                                                    </StackPanel>
+                                                </Border>
+                                                <ControlTemplate.Triggers>
+                                                    <Trigger Property="IsMouseOver" Value="True">
+                                                        <Setter TargetName="bd" Property="Background" Value="{DynamicResource ButtonHoverBackground}"/>
+                                                    </Trigger>
+                                                    <Trigger Property="IsChecked" Value="True">
+                                                        <Setter TargetName="bd" Property="Background" Value="{DynamicResource MenuHoverBackground}"/>
+                                                    </Trigger>
+                                                </ControlTemplate.Triggers>
+                                            </ControlTemplate>
+                                        </RadioButton.Template>
+                                    </RadioButton>
+
+                                    <RadioButton GroupName="ModeMenu" Tag="auto" Click="ModeItem_Click"
+                                                 IsChecked="{Binding ProjectSettings.IsModeAuto, Mode=TwoWay}">
+                                        <RadioButton.Template>
+                                            <ControlTemplate TargetType="RadioButton">
+                                                <Border x:Name="bd" Background="Transparent" CornerRadius="6" Padding="8,6" Cursor="Hand">
+                                                    <StackPanel Orientation="Horizontal">
+                                                        <Rectangle Width="11" Height="11" RadiusX="3" RadiusY="3"
+                                                                   Fill="{DynamicResource ModeAuto}" VerticalAlignment="Center"/>
+                                                        <StackPanel Margin="8,0,0,0">
+                                                            <TextBlock Text="{DynamicResource str_ModeAuto}" FontSize="12" FontWeight="SemiBold"/>
+                                                            <TextBlock Text="{DynamicResource str_ModeAutoHint}" FontSize="10.5"
+                                                                       Foreground="{DynamicResource SecondaryForeground}"/>
+                                                        </StackPanel>
+                                                    </StackPanel>
+                                                </Border>
+                                                <ControlTemplate.Triggers>
+                                                    <Trigger Property="IsMouseOver" Value="True">
+                                                        <Setter TargetName="bd" Property="Background" Value="{DynamicResource ButtonHoverBackground}"/>
+                                                    </Trigger>
+                                                    <Trigger Property="IsChecked" Value="True">
+                                                        <Setter TargetName="bd" Property="Background" Value="{DynamicResource MenuHoverBackground}"/>
+                                                    </Trigger>
+                                                </ControlTemplate.Triggers>
+                                            </ControlTemplate>
+                                        </RadioButton.Template>
+                                    </RadioButton>
+                                </StackPanel>
+                            </Border>
+                        </Popup>
+
+                        <!-- === Отправить / Прервать (toggle по IsBusy) === -->
+                        <Grid Grid.Column="4" VerticalAlignment="Center">
+                            <Button x:Name="SendButton" Width="36" Height="32"
+                                    Command="{Binding ActiveChat.SendMessageCommand}"
+                                    ToolTip="{DynamicResource str_Chat_SendButton}" Cursor="Hand"
+                                    Visibility="{Binding ActiveChat.IsBusy, Converter={StaticResource InvBoolToVis}}">
+                                <Button.Template>
+                                    <ControlTemplate TargetType="Button">
+                                        <Border x:Name="bd" Background="{DynamicResource AccentColor}" CornerRadius="8">
+                                            <Path Width="15" Height="15" Stretch="Uniform"
+                                                  Fill="{DynamicResource AccentOnFill}"
+                                                  Data="M2.4 21.6 22.8 12 2.4 2.4 2.4 9.9 17 12 2.4 14.1Z"/>
+                                        </Border>
+                                        <ControlTemplate.Triggers>
+                                            <Trigger Property="IsMouseOver" Value="True">
+                                                <Setter TargetName="bd" Property="Background" Value="{DynamicResource AccentHoverColor}"/>
+                                            </Trigger>
+                                            <Trigger Property="IsPressed" Value="True">
+                                                <Setter TargetName="bd" Property="Background" Value="{DynamicResource AccentPressedColor}"/>
+                                            </Trigger>
+                                            <Trigger Property="IsEnabled" Value="False">
+                                                <Setter Property="Opacity" Value="0.45"/>
+                                            </Trigger>
+                                        </ControlTemplate.Triggers>
+                                    </ControlTemplate>
+                                </Button.Template>
+                            </Button>
+
+                            <Button Width="36" Height="32"
+                                    Command="{Binding ActiveChat.InterruptCommand}"
+                                    ToolTip="{DynamicResource str_Chat_Interrupt}" Cursor="Hand"
+                                    Visibility="{Binding ActiveChat.IsBusy, Converter={StaticResource BoolToVis}}">
+                                <Button.Template>
+                                    <ControlTemplate TargetType="Button">
+                                        <Border x:Name="bd" Background="Transparent"
+                                                BorderBrush="{DynamicResource ErrorColor}" BorderThickness="1.5"
+                                                CornerRadius="8">
+                                            <Rectangle Width="11" Height="11" Fill="{DynamicResource ErrorColor}" RadiusX="2" RadiusY="2"/>
+                                        </Border>
+                                        <ControlTemplate.Triggers>
+                                            <Trigger Property="IsMouseOver" Value="True">
+                                                <Setter TargetName="bd" Property="Background" Value="{DynamicResource ErrorBackground}"/>
+                                            </Trigger>
+                                            <Trigger Property="IsEnabled" Value="False">
+                                                <Setter Property="Opacity" Value="0.45"/>
+                                            </Trigger>
+                                        </ControlTemplate.Triggers>
+                                    </ControlTemplate>
+                                </Button.Template>
+                            </Button>
+                        </Grid>
                     </Grid>
                 </Grid>
             </Border>
-
-            <!-- ===== Поле сообщения (начинается ровно под чатом) ===== -->
-            <Grid Grid.Column="1" Margin="12,10">
-                <TextBox x:Name="InputTextBox"
-                         Text="{Binding ActiveChat.InputText, UpdateSourceTrigger=PropertyChanged}"
-                         AcceptsReturn="True"
-                         TextWrapping="Wrap"
-                         MinHeight="52"
-                         MaxHeight="140"
-                         VerticalScrollBarVisibility="Auto"
-                         VerticalContentAlignment="Center"
-                         PreviewKeyDown="InputTextBox_PreviewKeyDown"/>
-                <TextBlock IsHitTestVisible="False"
-                           Text="{DynamicResource str_Chat_InputPlaceholder}"
-                           Foreground="{DynamicResource SecondaryForeground}"
-                           Margin="8,0,0,0"
-                           VerticalAlignment="Center"
-                           Visibility="{Binding Text, ElementName=InputTextBox, Converter={StaticResource EmptyToVis}}"/>
-            </Grid>
-
-            <!-- ===== Кнопка ➤/■ (toggle по IsBusy) ===== -->
-            <Grid Grid.Column="2" Margin="0,0,14,0" VerticalAlignment="Center">
-                <!-- Отправить -->
-                <Button x:Name="SendButton"
-                        Width="46" Height="42"
-                        Command="{Binding ActiveChat.SendMessageCommand}"
-                        ToolTip="{DynamicResource str_Chat_SendButton}"
-                        Cursor="Hand"
-                        Visibility="{Binding ActiveChat.IsBusy, Converter={StaticResource InvBoolToVis}}">
-                    <Button.Template>
-                        <ControlTemplate TargetType="Button">
-                            <Border x:Name="bd" Background="{DynamicResource AccentColor}" CornerRadius="8">
-                                <Path Width="18" Height="18" Stretch="Uniform"
-                                      Fill="{DynamicResource AccentOnFill}"
-                                      Data="M2.4 21.6 22.8 12 2.4 2.4 2.4 9.9 17 12 2.4 14.1Z"/>
-                            </Border>
-                            <ControlTemplate.Triggers>
-                                <Trigger Property="IsMouseOver" Value="True">
-                                    <Setter TargetName="bd" Property="Background" Value="{DynamicResource AccentHoverColor}"/>
-                                </Trigger>
-                                <Trigger Property="IsPressed" Value="True">
-                                    <Setter TargetName="bd" Property="Background" Value="{DynamicResource AccentPressedColor}"/>
-                                </Trigger>
-                                <Trigger Property="IsEnabled" Value="False">
-                                    <Setter Property="Opacity" Value="0.45"/>
-                                </Trigger>
-                            </ControlTemplate.Triggers>
-                        </ControlTemplate>
-                    </Button.Template>
-                </Button>
-                <!-- Прервать (во время хода) -->
-                <Button Width="46" Height="42"
-                        Command="{Binding ActiveChat.InterruptCommand}"
-                        ToolTip="{DynamicResource str_Chat_Interrupt}"
-                        Cursor="Hand"
-                        Visibility="{Binding ActiveChat.IsBusy, Converter={StaticResource BoolToVis}}">
-                    <Button.Template>
-                        <ControlTemplate TargetType="Button">
-                            <Border x:Name="bd" Background="Transparent"
-                                    BorderBrush="{DynamicResource ErrorColor}" BorderThickness="1.5"
-                                    CornerRadius="8">
-                                <Rectangle Width="13" Height="13" Fill="{DynamicResource ErrorColor}" RadiusX="2" RadiusY="2"/>
-                            </Border>
-                            <ControlTemplate.Triggers>
-                                <Trigger Property="IsMouseOver" Value="True">
-                                    <Setter TargetName="bd" Property="Background" Value="{DynamicResource ErrorBackground}"/>
-                                </Trigger>
-                                <Trigger Property="IsEnabled" Value="False">
-                                    <Setter Property="Opacity" Value="0.45"/>
-                                </Trigger>
-                            </ControlTemplate.Triggers>
-                        </ControlTemplate>
-                    </Button.Template>
-                </Button>
-            </Grid>
         </Grid>
     </Border>
 </UserControl>
