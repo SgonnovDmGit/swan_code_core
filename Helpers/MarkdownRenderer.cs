@@ -248,8 +248,13 @@ namespace SwanCode.Core.Helpers
         /// TextBox: так он выделяется отдельно от текста ответа и живёт рядом с кнопками.
         /// «Копировать» есть всегда; «в песочницу» — только если продукт дал команду.
         /// </summary>
+        /// <summary>Диагностический хук (продукт цепляет к файловому логу). null — no-op.</summary>
+        public static Action<string>? DiagLog;
+
         private static BlockUIContainer BuildCodeBlockWithActions(string code, ICommand? sandboxCommand)
         {
+            DiagLog?.Invoke($"codeblock: len={code.Length} sandboxCommand={(sandboxCommand == null ? "NULL" : "ok")}");
+
             var codeBox = new TextBox
             {
                 Text = code,
@@ -281,7 +286,9 @@ namespace SwanCode.Core.Helpers
                     FindString("str_Chat_ToSandboxHint", "Положить фрагмент в песочницу"),
                     () =>
                     {
-                        if (sandboxCommand.CanExecute(code)) sandboxCommand.Execute(code);
+                        var can = sandboxCommand.CanExecute(code);
+                        DiagLog?.Invoke($"click «в песочницу»: canExecute={can}");
+                        if (can) sandboxCommand.Execute(code);
                     }));
 
             var grid = new Grid();
@@ -547,7 +554,10 @@ namespace SwanCode.Core.Helpers
         private static void OnRenderInputChanged(DependencyObject d, DependencyPropertyChangedEventArgs e)
         {
             if (d is not RichTextBox rtb) return;
-            rtb.Document = MarkdownRenderer.Render(GetMarkdown(rtb), GetCodeBlockCommand(rtb));
+            var cmd = GetCodeBlockCommand(rtb);
+            MarkdownRenderer.DiagLog?.Invoke(
+                $"render rtb#{rtb.GetHashCode():X} trigger={e.Property.Name} cmd={(cmd == null ? "NULL" : "ok")}");
+            rtb.Document = MarkdownRenderer.Render(GetMarkdown(rtb), cmd);
         }
     }
 }

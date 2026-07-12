@@ -45,5 +45,12 @@ namespace SwanCode.Core.Chat.Views
 
         // Выбор режима закрывает меню — иначе оно висит поверх ленты до клика мимо.
         private void ModeItem_Click(object sender, RoutedEventArgs e) => ModeChip.IsChecked = false;
+
+        // То же для модели: клик по элементу списка происходит ВНУТРИ Popup, поэтому
+        // StaysOpen=False не считает его «кликом мимо» и меню остаётся висеть.
+        private void ModelList_SelectionChanged(object sender, SelectionChangedEventArgs e)
+        {
+            if (e.AddedItems.Count > 0) ModelChip.IsChecked = false;
+        }
     }
 }

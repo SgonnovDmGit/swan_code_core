@@ -202,8 +202,11 @@
                             <Border Style="{StaticResource PopupCard}" MinWidth="290">
                                 <StackPanel>
                                     <TextBlock Text="{DynamicResource str_Model}" Style="{StaticResource PopupHead}"/>
+                                    <!-- Выбор модели закрывает меню: клик по элементу ВНУТРИ Popup —
+                                         не «клик мимо», и StaysOpen=False его не ловит. -->
                                     <ListBox ItemsSource="{Binding ProjectSettings.Models}"
                                              SelectedItem="{Binding ProjectSettings.SelectedModel}"
+                                             SelectionChanged="ModelList_SelectionChanged"
                                              MaxHeight="260" BorderThickness="0"
                                              Background="Transparent"
                                              ScrollViewer.HorizontalScrollBarVisibility="Disabled">
