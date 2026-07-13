@@ -897,37 +897,59 @@ namespace SwanCode.Core.Chat.ViewModels
         {
             if (string.IsNullOrEmpty(SessionId) || results.Count == 0) return;
 
-            // Транзиентный «AI продолжает…» на время round-trip'а tool-results: без него
-            // после срабатывания тула диалог выглядит замершим, хотя ход ещё не закончен.
-            var waiting = new ChatMessage
-            {
-                Role = MessageRoles.Assistant,
-                IsThinking = true,
-                Content = System.Windows.Application.Current?.TryFindResource("str_Chat_ToolContinue") as string
-                          ?? "Обрабатываю результат инструмента…"
-            };
-            Messages.Add(waiting);
-
+            BeginToolContinuation();
             try
             {
                 var retry = await Api.PostToolResultsAsync(SessionId, results);
                 if (!string.IsNullOrEmpty(retry.SessionId))
                     SessionId = retry.SessionId;
 
-                Messages.Remove(waiting);
+                EndToolContinuation();
                 await HandleToolRetryResponseAsync(retry);
             }
             catch (ApiException ex)
             {
-                Messages.Remove(waiting);
+                EndToolContinuation();
                 await OnApiExceptionAsync(ex);
             }
             catch (Exception ex)
             {
-                Messages.Remove(waiting);
+                EndToolContinuation();
                 await OnUnexpectedExceptionAsync(ex);
             }
         }
+
+        /// <summary>
+        /// Индикатор ожидания на round-trip'е tool-результатов: без него после срабатывания
+        /// тула диалог выглядит замершим, хотя ход ещё не закончен.
+        ///
+        /// По умолчанию — своя транзиентная строка. Наследник, у которого УЖЕ есть свой
+        /// индикатор хода (ротация фраз «Думаю…»), переопределяет пару и переиспользует его:
+        /// продолжение после тула — это тот же ход, и выглядеть оно должно так же. Отдельная
+        /// строка «Инструмент отработал — обрабатываю результат» только шумела: что инструмент
+        /// отработал, и так видно по его карточке.
+        /// </summary>
+        protected virtual void BeginToolContinuation()
+        {
+            _toolWaiting = new ChatMessage
+            {
+                Role = MessageRoles.Assistant,
+                IsThinking = true,
+                Content = System.Windows.Application.Current?.TryFindResource("str_Chat_Thinking") as string
+                          ?? "думаю…"
+            };
+            Messages.Add(_toolWaiting);
+        }
+
+        /// <summary>Снять индикатор ожидания. Обязан быть идемпотентным.</summary>
+        protected virtual void EndToolContinuation()
+        {
+            if (_toolWaiting == null) return;
+            Messages.Remove(_toolWaiting);
+            _toolWaiting = null;
+        }
+
+        private ChatMessage? _toolWaiting;
 
         /// <summary>
         /// Обработка ответа /chat/tool-results — по сути следующий assistant-ход
