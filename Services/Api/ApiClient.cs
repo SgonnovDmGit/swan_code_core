@@ -316,14 +316,16 @@ namespace SwanCode.Core.Services.Api
         public async Task<ChatToolRetryResponse> PostToolResultsAsync(
             string sessionId,
             IReadOnlyList<ToolResultItem> results,
-            string? assistMode = null)
+            string? assistMode = null,
+            string[]? clientTools = null)
         {
             using var request = CreateRequest(HttpMethod.Post, "/v1/api/chat/tool-results");
             var body = new ChatToolResultsEnvelope
             {
                 SessionId = sessionId,
                 Results = results is ToolResultItem[] arr ? arr : System.Linq.Enumerable.ToArray(results),
-                AssistMode = assistMode
+                AssistMode = assistMode,
+                ClientTools = clientTools
             };
             var json = JsonSerializer.Serialize(body);
             request.Content = new StringContent(json, Encoding.UTF8, "application/json");

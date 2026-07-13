@@ -822,12 +822,36 @@ namespace SwanCode.Core.Chat.ViewModels
         /// и продуктовых тулов (1С: onec_*; Universal: только legacy пока).
         /// Повторная регистрация под тем же именем перекрывает предыдущую.
         /// </summary>
-        protected void RegisterToolHandler(string name, Func<ToolUseDTO, Task<ToolResultItem>> handler)
+        /// <param name="declare">
+        /// Объявлять ли тул серверу в <see cref="ClientTools"/> (F-000042 / REQ-057, T-000156).
+        /// «Умею обработать вызов» и «умею сделать работу» — РАЗНЫЕ вещи: заглушка обработает
+        /// вызов и честно вернёт not_implemented, но объявлять её нельзя — модель позовёт её и
+        /// сожжёт ход впустую. Handler у заглушки остаётся: старый сервер может задекларировать
+        /// тул сам, и ответить «не умею» вежливее, чем «no handler».
+        /// </param>
+        protected void RegisterToolHandler(string name, Func<ToolUseDTO, Task<ToolResultItem>> handler,
+            bool declare = true)
         {
             if (string.IsNullOrEmpty(name)) throw new ArgumentException("Tool name is required", nameof(name));
             if (handler == null) throw new ArgumentNullException(nameof(handler));
             _toolHandlers[name] = handler;
+            if (declare) _declaredTools.Add(name);
+            else _declaredTools.Remove(name);
         }
+
+        private readonly SortedSet<string> _declaredTools = new(StringComparer.Ordinal);
+
+        /// <summary>
+        /// Имена client-executed тулов, которые клиент РЕАЛЬНО умеет исполнить (F-000042 / REQ-057).
+        /// Едут в каждом запросе хода: сервер пересекает свой каталог продукта с этим набором.
+        ///
+        /// Зачем: до этого состав тулов решал ОДИН сервер и не знал, какой версии клиент на том
+        /// конце. 13.07 это выстрелило в бою — сервер объявил модели read_oneC_procedure, клиент
+        /// его ещё не умел, модель звала объявленный ей тул, получала «No handler registered» и,
+        /// не найдя способа заменить процедуру целиком, шла портить модуль мелкими правками.
+        /// Теперь состав тулов — пересечение того, что сервер даёт, и того, что клиент умеет.
+        /// </summary>
+        public string[] ClientTools => _declaredTools.ToArray();
 
         /// <summary>
         /// Диспатчит массив tool_use'ов из ответа сервера: для каждого зовёт зарегистрированный
@@ -918,7 +942,7 @@ namespace SwanCode.Core.Chat.ViewModels
             BeginToolContinuation();
             try
             {
-                var retry = await Api.PostToolResultsAsync(SessionId, results, AssistMode);
+                var retry = await Api.PostToolResultsAsync(SessionId, results, AssistMode, ClientTools);
                 if (!string.IsNullOrEmpty(retry.SessionId))
                     SessionId = retry.SessionId;
 

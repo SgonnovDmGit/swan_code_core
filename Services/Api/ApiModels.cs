@@ -82,6 +82,20 @@ namespace SwanCode.Core.Services.Api
         [JsonPropertyName("assistMode")]
         [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
         public string? AssistMode { get; set; }
+
+        /// <summary>
+        /// F-000042 / REQ-057 (server v0.80.0), T-000156: canonical-имена client-executed тулов,
+        /// которые клиент умеет исполнить. Определения и JSON-схемы остаются серверными — шлём
+        /// только имена. Эффективный surface хода = server-executed + пересечение(серверный
+        /// каталог продукта, это поле). Расширить surface поле не может — только сузить.
+        ///
+        /// Ключ ОТСУТСТВУЕТ = fail-open, полный каталог продукта (поведение старых клиентов).
+        /// Пустой массив = ноль client-executed тулов. Это РАЗНЫЕ вещи — поэтому null, а не
+        /// Array.Empty: случайно отправленный [] обезоружил бы модель полностью.
+        /// </summary>
+        [JsonPropertyName("clientTools")]
+        [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+        public string[]? ClientTools { get; set; }
     }
 
     // --- Async chat (ANNOUNCE-007 / server v0.51.0) ---
@@ -608,6 +622,15 @@ namespace SwanCode.Core.Services.Api
         [JsonPropertyName("assistMode")]
         [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
         public string? AssistMode { get; set; }
+
+        /// <summary>
+        /// T-000156. Тоже per-request и тоже без наследования: продолжение хода без поля сервер
+        /// считает fail-open и вернёт полный каталог. Побочный эффект контракта, ради которого
+        /// он так и сделан: существующую сессию может безопасно резюмировать клиент ДРУГОЙ версии.
+        /// </summary>
+        [JsonPropertyName("clientTools")]
+        [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+        public string[]? ClientTools { get; set; }
     }
 
     // --- История диалогов (T-000106) ---
