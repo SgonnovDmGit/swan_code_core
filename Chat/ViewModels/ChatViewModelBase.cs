@@ -903,6 +903,14 @@ namespace SwanCode.Core.Chat.ViewModels
         /// содержать новые toolUses[] — тогда пайплайн рекурсивно диспатчит их дальше.
         /// Наследник может переопределить для локального логирования / debug bubble'ов.
         /// </summary>
+        /// <summary>
+        /// Режим ассистента (planning | auto | review), если продукт их знает. База — null:
+        /// у Universal режимов нет, и поле в запрос не попадёт. 1С-клиент переопределяет
+        /// (T-000095) — иначе «Ревью» действовал бы только на первом запросе хода, а правки
+        /// модель делает в продолжениях.
+        /// </summary>
+        protected virtual string? AssistMode => null;
+
         protected virtual async Task PostToolResultsAsync(IReadOnlyList<ToolResultItem> results)
         {
             if (string.IsNullOrEmpty(SessionId) || results.Count == 0) return;
@@ -910,7 +918,7 @@ namespace SwanCode.Core.Chat.ViewModels
             BeginToolContinuation();
             try
             {
-                var retry = await Api.PostToolResultsAsync(SessionId, results);
+                var retry = await Api.PostToolResultsAsync(SessionId, results, AssistMode);
                 if (!string.IsNullOrEmpty(retry.SessionId))
                     SessionId = retry.SessionId;
 

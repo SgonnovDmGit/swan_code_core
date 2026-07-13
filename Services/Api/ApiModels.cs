@@ -68,6 +68,20 @@ namespace SwanCode.Core.Services.Api
         [JsonPropertyName("asyncWaitMs")]
         [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
         public int? AsyncWaitMs { get; set; }
+
+        /// <summary>
+        /// REQ-022 (server v0.77.0), T-000095: planning | auto | review. Сервер режет surface
+        /// ДО вызова провайдера — в review модели физически не даётся право писать в живой
+        /// модуль (apply_oneC_edit сужается до target: sandbox). Гейтинг делает сервер, клиент
+        /// только честно сообщает режим.
+        ///
+        /// omitempty. Сервер старее v0.77.0 просто проигнорирует незнакомое поле — поэтому
+        /// capability-флаг не спрашиваем: лишний запрос ради поведения, которое и так деградирует
+        /// в нынешнее.
+        /// </summary>
+        [JsonPropertyName("assistMode")]
+        [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+        public string? AssistMode { get; set; }
     }
 
     // --- Async chat (ANNOUNCE-007 / server v0.51.0) ---
@@ -585,6 +599,15 @@ namespace SwanCode.Core.Services.Api
 
         [JsonPropertyName("results")]
         public ToolResultItem[] Results { get; set; } = Array.Empty<ToolResultItem>();
+
+        /// <summary>
+        /// T-000095. Режим обязан ехать и в ПРОДОЛЖЕНИИ хода, а не только в первом запросе:
+        /// правки модель делает именно здесь, в цепочке tool-вызовов. Отправь режим один раз —
+        /// и «Ревью» перестанет действовать ровно на том ходу, ради которого он включён.
+        /// </summary>
+        [JsonPropertyName("assistMode")]
+        [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+        public string? AssistMode { get; set; }
     }
 
     // --- История диалогов (T-000106) ---
