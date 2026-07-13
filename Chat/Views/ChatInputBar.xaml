@@ -317,7 +317,11 @@
                                          Foreground="{DynamicResource PrimaryForeground}">
                                     <StackPanel MinWidth="170" Margin="4">
                                         <DockPanel Margin="0,2"><TextBlock Text="{DynamicResource str_CtxTooltipUsed}" Foreground="{DynamicResource SecondaryForeground}" FontSize="12"/><TextBlock DockPanel.Dock="Right" HorizontalAlignment="Right" Text="{Binding ActiveChat.ContextTokens, StringFormat={}{0:N0}}" FontSize="12" Margin="12,0,0,0"/></DockPanel>
-                                        <DockPanel Margin="0,2"><TextBlock Text="{DynamicResource str_CtxTooltipWindow}" Foreground="{DynamicResource SecondaryForeground}" FontSize="12"/><TextBlock DockPanel.Dock="Right" HorizontalAlignment="Right" Text="{Binding ProjectSettings.ContextLengthText}" FontSize="12" Margin="12,0,0,0"/></DockPanel>
+                                        <!-- Предел — это ПОРОГ СЖАТИЯ, а не размер окна модели: сервер режет
+                                             контекст раньше, чем окно кончится, и пользователю важна та точка,
+                                             где он реально начнёт резать. Строка от contextLength показывала «—»:
+                                             окно каталогу неизвестно у всех моделей на проде (T-000161). -->
+                                        <DockPanel Margin="0,2"><TextBlock Text="{DynamicResource str_CtxTooltipWindow}" Foreground="{DynamicResource SecondaryForeground}" FontSize="12"/><TextBlock DockPanel.Dock="Right" HorizontalAlignment="Right" Text="{Binding ActiveChat.ContextLimitDisplay}" FontSize="12" Margin="12,0,0,0"/></DockPanel>
                                         <DockPanel Margin="0,2">
                                             <DockPanel.Resources>
                                                 <Style x:Key="ZoneText" TargetType="TextBlock">
@@ -372,8 +376,14 @@
                                     </ControlTemplate.Triggers>
                                 </ControlTemplate>
                             </Button.Template>
-                            <TextBlock Text="⊟" FontSize="14" FontWeight="SemiBold"
-                                       Foreground="{DynamicResource SecondaryForeground}"/>
+                            <!-- Вектор, а не символ. Было «⊟» (U+229F): этого глифа в системном
+                                 шрифте нет, и вместо кнопки рисовался квадратик-заглушка (смок
+                                 13.07). Вылезло только сейчас — кнопка показывается при живом
+                                 кольце, а кольцо до T-000155 было мёртвым, и её никто не видел.
+                                 Две стрелки к черте — «сжать к середине» (T-000161). -->
+                            <Path Width="13" Height="13" Stretch="Uniform"
+                                  Fill="{DynamicResource SecondaryForeground}"
+                                  Data="M4,11H20V13H4V11M12,10L8,6H11V2H13V6H16L12,10M12,14L16,18H13V22H11V18H8L12,14Z"/>
                         </Button>
 
                         <!-- === Чип режима (только 1С-клиент: ShowModeChip=True) === -->

@@ -749,10 +749,6 @@ namespace SwanCode.Core.Services.Api
         /// <summary>Prompt-токены хода из кэша (REQ-027). Присутствует ⟺ > 0.</summary>
         [JsonPropertyName("cachedTokens")]
         public int? CachedTokens { get; set; }
-
-        /// <summary>Занятость контекста после этого хода — чтобы кольцо не обнулялось на реплее.</summary>
-        [JsonPropertyName("contextFill")]
-        public ContextFillDto? ContextFill { get; set; }
     }
 
     /// <summary>
@@ -769,6 +765,15 @@ namespace SwanCode.Core.Services.Api
 
         [JsonPropertyName("messages")]
         public SessionMessageDto[] Messages { get; set; } = Array.Empty<SessionMessageDto>();
+
+        /// <summary>
+        /// Занятость контекста сессии на момент перезагрузки — **top-level**, а не в сообщениях
+        /// (источник: свежайший измеренный ход сессии). Именно здесь я и промахнулся в v0.17.5:
+        /// повесил поле на SessionMessageDto, где его не бывает никогда, — и кольцо после
+        /// перезагрузки диалога оставалось пустым, хотя на живом ходе работало (T-000161).
+        /// </summary>
+        [JsonPropertyName("contextFill")]
+        public ContextFillDto? ContextFill { get; set; }
     }
 
     /// <summary>
