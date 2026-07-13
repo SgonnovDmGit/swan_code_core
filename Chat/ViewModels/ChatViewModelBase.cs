@@ -143,6 +143,9 @@ namespace SwanCode.Core.Chat.ViewModels
 
         public ICommand SendMessageCommand { get; }
         public ICommand NewChatCommand { get; }
+
+        /// <summary>Новый диалог, доска переезжает (T-000159). Неактивна, когда доска пуста.</summary>
+        public ICommand NewChatWithBoardCommand { get; }
         public ICommand InterruptCommand { get; }
 
         /// <summary>Ручное сжатие контекста диалога (T-000133).</summary>
@@ -168,6 +171,9 @@ namespace SwanCode.Core.Chat.ViewModels
                 () => !string.IsNullOrEmpty(SessionId) && !IsBusy);
 
             NewChatCommand = new RelayCommand(NewChat, () => !IsBusy);
+
+            NewChatWithBoardCommand = new RelayCommand(
+                NewChatWithBoard, () => !IsBusy && TaskBoard.Count > 0);
 
             InterruptCommand = new RelayCommand(
                 Interrupt,
@@ -1023,7 +1029,20 @@ namespace SwanCode.Core.Chat.ViewModels
 
             try
             {
-                var request = BuildRequest(message, promptCode);
+                // Доска переехала в новый диалог — модель о ней ещё НЕ знает: в контекст запроса
+                // доска не попадает, AI узнаёт о ней только из своих же вызовов task_board_update.
+                // Без этой врезки перенос был бы чисто визуальным: человек видит план, а модель
+                // начинает с чистого листа и перепланирует заново (T-000159).
+                // Врезаем в ПЕРВОЕ сообщение нового диалога, а не отдельным ходом: лишний ход —
+                // это лишние деньги, а весь смысл переноса в том, чтобы холодный старт был дешёвым.
+                var outgoing = message;
+                if (_boardCarriedOver && TaskBoard.Count > 0)
+                {
+                    outgoing = BuildBoardHandoff() + "\n\n" + message;
+                    _boardCarriedOver = false;
+                }
+
+                var request = BuildRequest(outgoing, promptCode);
                 var response = await Api.SendChatAsyncAsync(request, cancellationToken: cts.Token);
 
                 if (!string.IsNullOrEmpty(response.SessionId))
@@ -1193,7 +1212,56 @@ namespace SwanCode.Core.Chat.ViewModels
         {
             Messages.Clear();
             SessionId = string.Empty;
+            _boardCarriedOver = false;
             ClearTaskBoard();
+        }
+
+        /// <summary>
+        /// Новый диалог, но доска переезжает с собой (T-000159).
+        ///
+        /// Зачем: новый диалог — единственная дешёвая операция в экономике кэша. Кэш промпта
+        /// живёт для КОНКРЕТНОЙ модели и КОНКРЕТНОГО префикса истории, поэтому и смена модели,
+        /// и сжатие контекста его обнуляют. Начать с чистого листа дешевле всего — но до сих пор
+        /// это стоило потери доски, и потому им никто не пользовался. Теперь план едет следом,
+        /// и «начать заново» перестаёт быть потерей работы.
+        /// </summary>
+        protected virtual void NewChatWithBoard()
+        {
+            var carried = TaskBoard.Count > 0;
+            Messages.Clear();
+            SessionId = string.Empty;
+            _boardCarriedOver = carried;
+            // Доску НЕ чистим: она уляжется под новый sessionId, как только сервер его выдаст
+            // (см. сеттер SessionId — там уже есть перенос черновика).
+        }
+
+        // Доска переехала, но модель ещё не знает — врезка уйдёт в первое сообщение.
+        private bool _boardCarriedOver;
+
+        /// <summary>
+        /// Доска текстом — для модели, в первое сообщение перенесённого диалога. Компактно:
+        /// на большом модуле каждый токен входа платный, а доска нужна как ориентир, не как
+        /// протокол. Формат тот же, каким модель сама её и наполняет через task_board_update.
+        /// </summary>
+        private string BuildBoardHandoff()
+        {
+            var sb = new System.Text.StringBuilder();
+            sb.AppendLine("Продолжаем работу по уже составленному плану. Доска задач на текущий момент:");
+
+            foreach (var t in TaskBoard)
+            {
+                sb.Append("- id=").Append(t.Id).Append(" | ").Append(t.Name);
+                sb.Append(" | статус: ").Append(t.Status);
+                if (t.UserDone) sb.Append(" | человек отметил выполненной");
+                if (t.IsCurrent) sb.Append(" | ТЕКУЩАЯ");
+                if (!string.IsNullOrWhiteSpace(t.ExternalId)) sb.Append(" | трекер: ").Append(t.ExternalId);
+                if (!string.IsNullOrWhiteSpace(t.Description)) sb.Append(" | ").Append(t.Description);
+                sb.AppendLine();
+            }
+
+            sb.Append("Доска уже заполнена — заново её не составляй. Обновляй существующие строки " +
+                      "через task_board_update по тем же id.");
+            return sb.ToString();
         }
     }
 }
