@@ -201,6 +201,75 @@ namespace SwanCode.Core.Services.Api
         // REQ-021 (Lensa_Query, опционально): заголовок сессии.
         [JsonPropertyName("title")]
         public string? Title { get; set; }
+
+        /// <summary>
+        /// Занятость контекста ПОСЛЕ хода (REQ-028 / сервер v0.75.0+). Отдельно от биллинговых
+        /// счётчиков: promptTokens — трата хода, contextFill — сколько всего набралось.
+        /// omitempty: нет объекта — нет данных (не ноль).
+        /// </summary>
+        [JsonPropertyName("contextFill")]
+        public ContextFillDto? ContextFill { get; set; }
+
+        /// <summary>
+        /// Prompt-токены хода, прочитанные из кэша (REQ-027, сервер v0.80.0). ⊆ promptTokens.
+        /// omitempty и присутствует ⟺ > 0: у провайдера с непрозрачным маршрутом «ноль» и
+        /// «нет данных» в usage неразличимы, поэтому ноль сервер не отдаёт вовсе.
+        /// </summary>
+        [JsonPropertyName("cachedTokens")]
+        public int? CachedTokens { get; set; }
+    }
+
+    /// <summary>
+    /// Занятость контекстного окна (REQ-053 Lensa_Query, v0.75.0; degraded-форма — REQ-028, v0.80.0).
+    ///
+    /// Кольцо рисуется от <see cref="CompactionThresholdTokens"/>, а НЕ от окна модели: сервер
+    /// компактит РАНЬШЕ потолка окна, и кольцо от contextLength будет врать (прямое указание
+    /// сервера в receipt REQ-028). Окно каталогу может быть вообще неизвестно — тогда приходит
+    /// degraded-форма (model + lastPromptTokens + compactionThresholdTokens, без window/ratio),
+    /// и кольцо всё равно работает. На проде 13.07 именно так: contextLength у всех моделей 0.
+    /// </summary>
+    public class ContextFillDto
+    {
+        [JsonPropertyName("model")]
+        public string? Model { get; set; }
+
+        /// <summary>Полный отправленный контекст финального AI-вызова: промпт + тулы + история.</summary>
+        [JsonPropertyName("lastPromptTokens")]
+        public int LastPromptTokens { get; set; }
+
+        /// <summary>Окно модели из каталога. Может отсутствовать — каталогу оно неизвестно.</summary>
+        [JsonPropertyName("contextWindow")]
+        public int? ContextWindow { get; set; }
+
+        /// <summary>Фактическая точка срабатывания авто-сжатия. Отсутствует — сжатие у продукта выключено.</summary>
+        [JsonPropertyName("compactionThresholdTokens")]
+        public int? CompactionThresholdTokens { get; set; }
+
+        [JsonPropertyName("fillRatio")]
+        public double? FillRatio { get; set; }
+
+        [JsonPropertyName("thresholdRatio")]
+        public double? ThresholdRatio { get; set; }
+
+        /// <summary>
+        /// Заполнение 0..1 для кольца: от порога сжатия, если он известен, иначе от окна модели.
+        /// Больше единицы не бывает — сервер честно предупреждает, что клампить обязан клиент.
+        /// </summary>
+        public double Fill
+        {
+            get
+            {
+                var limit = CompactionThresholdTokens is > 0
+                    ? CompactionThresholdTokens.Value
+                    : ContextWindow ?? 0;
+                if (limit <= 0 || LastPromptTokens <= 0) return 0;
+                var f = (double)LastPromptTokens / limit;
+                return f > 1 ? 1 : f;
+            }
+        }
+
+        /// <summary>Есть что рисовать: известен и расход, и предел.</summary>
+        public bool HasData => Fill > 0;
     }
 
     public class CodeChangeDto
@@ -370,6 +439,14 @@ namespace SwanCode.Core.Services.Api
 
         [JsonPropertyName("costRub")]
         public decimal? CostRub { get; set; }
+
+        /// <summary>Занятость контекста после этого раунда (REQ-028). Ход после тула — тот же ход.</summary>
+        [JsonPropertyName("contextFill")]
+        public ContextFillDto? ContextFill { get; set; }
+
+        /// <summary>Prompt-токены раунда из кэша (REQ-027). Присутствует ⟺ > 0.</summary>
+        [JsonPropertyName("cachedTokens")]
+        public int? CachedTokens { get; set; }
     }
 
     // --- User DTOs ---
@@ -651,6 +728,31 @@ namespace SwanCode.Core.Services.Api
 
         [JsonPropertyName("tokensPerSec")]
         public double? TokensPerSec { get; set; }
+
+        /// <summary>
+        /// Размышления модели по ходу (сервер отдаёт с v0.59.0, включая строки tool_use).
+        /// Мы их не рендерили — и получали «голые карточки» вызовов без комментария: reasoning-
+        /// модели говорят НЕ в content, а здесь. Это и был настоящий корень REQ-026, который
+        /// сервер справедливо отклонил, подняв наши же прод-сессии (T-000160).
+        /// </summary>
+        [JsonPropertyName("reasoningText")]
+        public string? ReasoningText { get; set; }
+
+        /// <summary>
+        /// Фактически применённый уровень размышлений (REQ-025, сервер v0.80.0): none|minimal|
+        /// low|medium|high. omitempty — строка записана до v0.80.0; читать как «неизвестно» и
+        /// падать на дефолт проекта, НЕ на none (прямое указание сервера).
+        /// </summary>
+        [JsonPropertyName("reasoningEffort")]
+        public string? ReasoningEffort { get; set; }
+
+        /// <summary>Prompt-токены хода из кэша (REQ-027). Присутствует ⟺ > 0.</summary>
+        [JsonPropertyName("cachedTokens")]
+        public int? CachedTokens { get; set; }
+
+        /// <summary>Занятость контекста после этого хода — чтобы кольцо не обнулялось на реплее.</summary>
+        [JsonPropertyName("contextFill")]
+        public ContextFillDto? ContextFill { get; set; }
     }
 
     /// <summary>

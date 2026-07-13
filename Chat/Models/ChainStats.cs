@@ -12,6 +12,20 @@ namespace SwanCode.Core.Chat.Models
         public int PromptTokens { get; set; }
         public int CompletionTokens { get; set; }
         public int TotalTokens => PromptTokens + CompletionTokens;
+
+        /// <summary>
+        /// Сколько prompt-токенов цепочки пришло из кэша (REQ-027). Именно это объясняет
+        /// пользователю, почему длинный ход с тулами стоил дёшево: на повторных раундах
+        /// history + system prompt читаются из кэша, а он в разы дешевле входа.
+        /// </summary>
+        public int CachedTokens { get; set; }
+
+        public bool HasCached => CachedTokens > 0;
+
+        /// <summary>«6 528 (49%)» — доля от входа цепочки, иначе число не с чем сравнить.</summary>
+        public string CachedDisplay => PromptTokens > 0
+            ? $"{CachedTokens:N0} ({100.0 * CachedTokens / PromptTokens:F0}%)"
+            : $"{CachedTokens:N0}";
         public decimal? CostCoins { get; set; }
         public double WallSeconds { get; set; }
 

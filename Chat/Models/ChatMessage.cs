@@ -136,6 +136,18 @@ namespace SwanCode.Core.Chat.Models
             }
         }
 
+        /// <summary>
+        /// Prompt-токены хода, взятые из кэша (REQ-027). ⊆ PromptTokens. Ноль — «кэша не было
+        /// ИЛИ провайдер не отдал разбивку»: сервер эти два случая не различает и ноль не шлёт
+        /// вовсе, поэтому и мы строку прячем, а не пишем «0 из кэша» (T-000146).
+        /// </summary>
+        private int _cachedTokens;
+        public int CachedTokens
+        {
+            get => _cachedTokens;
+            set => SetProperty(ref _cachedTokens, value);
+        }
+
         public int CompletionTokens
         {
             get => _completionTokens;

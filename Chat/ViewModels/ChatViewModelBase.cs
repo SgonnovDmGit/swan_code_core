@@ -40,6 +40,7 @@ namespace SwanCode.Core.Chat.ViewModels
         private DateTime _chainStartUtc;
         private int _chainPromptTokens;
         private int _chainCompletionTokens;
+        private int _chainCachedTokens;
         private decimal? _chainCoins;
 
         /// <summary>Сброс агрегата цепочки — начало нового хода.</summary>
@@ -48,6 +49,7 @@ namespace SwanCode.Core.Chat.ViewModels
             _chainStartUtc = DateTime.UtcNow;
             _chainPromptTokens = 0;
             _chainCompletionTokens = 0;
+            _chainCachedTokens = 0;
             _chainCoins = null;
         }
 
@@ -60,6 +62,7 @@ namespace SwanCode.Core.Chat.ViewModels
         {
             _chainPromptTokens += msg.PromptTokens;
             _chainCompletionTokens += msg.CompletionTokens;
+            _chainCachedTokens += msg.CachedTokens;
             if (msg.CostCoins.HasValue)
                 _chainCoins = (_chainCoins ?? 0m) + msg.CostCoins.Value;
 
@@ -69,6 +72,7 @@ namespace SwanCode.Core.Chat.ViewModels
             {
                 PromptTokens = _chainPromptTokens,
                 CompletionTokens = _chainCompletionTokens,
+                CachedTokens = _chainCachedTokens,
                 CostCoins = _chainCoins,
                 WallSeconds = (DateTime.UtcNow - _chainStartUtc).TotalSeconds
             };
@@ -978,6 +982,7 @@ namespace SwanCode.Core.Chat.ViewModels
                 costUsd: retry.CostUsd,
                 costRub: retry.CostRub,
                 userMessageId: null,
+                cachedTokens: retry.CachedTokens ?? 0,
                 toolUses: retry.ToolUses,
                 hasLegacyCodeChanges: retry.CodeChanges is { Length: > 0 });
             Messages.Add(msg);
@@ -1107,6 +1112,7 @@ namespace SwanCode.Core.Chat.ViewModels
                 costUsd: response.CostUsd,
                 costRub: response.CostRub,
                 userMessageId: response.UserMessageId,
+                cachedTokens: response.CachedTokens ?? 0,
                 toolUses: response.ToolUses,
                 hasLegacyCodeChanges: response.CodeChanges is { Length: > 0 });
             Messages.Add(msg);
@@ -1137,6 +1143,7 @@ namespace SwanCode.Core.Chat.ViewModels
             decimal? costUsd,
             decimal? costRub,
             int? userMessageId,
+            int cachedTokens,
             ToolUseDTO[]? toolUses,
             bool hasLegacyCodeChanges)
         {
@@ -1146,6 +1153,7 @@ namespace SwanCode.Core.Chat.ViewModels
                 Content = content,
                 ModelName = !string.IsNullOrEmpty(modelDisplay) ? modelDisplay : model,
                 PromptTokens = promptTokens,
+                CachedTokens = cachedTokens,
                 CompletionTokens = completionTokens,
                 TotalTokens = totalTokens,
                 ReasoningText = reasoningText,
